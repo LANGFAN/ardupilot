@@ -259,6 +259,21 @@ void Copter::fast_loop()
     // send outputs to the motors library
     motors_output();
 
+    //added by LSH   auto safety_switch on
+#if 1
+
+    if(hal.util->safety_switch_state() == AP_HAL::Util::SAFETY_DISARMED){
+    	safety_armed_last_time=AP_HAL::millis();
+    }
+    if(motors.armed()){
+    	motors_armed_last_time=AP_HAL::millis();
+    }
+    if(!motors.armed() && (hal.util->safety_switch_state() == AP_HAL::Util::SAFETY_ARMED) && (AP_HAL::millis()-motors_armed_last_time>10000) && (AP_HAL::millis()-safety_armed_last_time>10000)){
+    	hal.rcout->force_safety_on();//added by LSH
+    }
+#endif
+
+
     // Inertial Nav
     // --------------------
     read_inertia();

@@ -1009,7 +1009,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
     case MAVLINK_MSG_ID_HEARTBEAT:      // MAV ID: 0
     {
         // We keep track of the last time we received a heartbeat from our GCS for failsafe purposes
-        if(msg->sysid != copter.g.sysid_my_gcs) break;
+        if(msg->sysid != copter.g.sysid_my_gcs && msg->sysid != copter.g.sysid_my_rc) break;
         copter.failsafe.last_heartbeat_ms = AP_HAL::millis();
         copter.pmTest1++;
         break;
@@ -1154,7 +1154,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
         // allow override of RC channel values for HIL
         // or for complete GCS control of switch position
         // and RC PWM values.
-        if(msg->sysid != copter.g.sysid_my_gcs) break;                         // Only accept control from our gcs
+        if(msg->sysid != copter.g.sysid_my_gcs &&  msg->sysid != copter.g.sysid_my_rc) break;       // Only accept control from our gcs
         mavlink_rc_channels_override_t packet;
         int16_t v[8];
         mavlink_msg_rc_channels_override_decode(msg, &packet);
@@ -1455,7 +1455,13 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
             if (is_equal(packet.param1,1.0f)) {
                 // attempt to arm and return success or failure
                 if (copter.init_arm_motors(true)) {
-                    result = MAV_RESULT_ACCEPTED;
+
+                	//added by LSH
+                	if(copter.control_mode==GUIDED){
+						float takeoff_alt = copter.g2.wp_navalt_min * 100;      // Convert m to cm
+						copter.do_user_takeoff(takeoff_alt, is_zero((float)0));
+                	}
+                			result = MAV_RESULT_ACCEPTED;
                 }
             } else if (is_zero(packet.param1) && (copter.ap.land_complete || is_equal(packet.param2,21196.0f)))  {
                 // force disarming by setting param2 = 21196 is deprecated

@@ -202,6 +202,7 @@ public:
         k_param_gcs1,
         k_param_sysid_this_mav,
         k_param_sysid_my_gcs,
+		k_param_sysid_my_rc,   //added by LSH
         k_param_serial1_baud_old, // deprecated
         k_param_telem_delay,
         k_param_gcs2,
@@ -376,6 +377,7 @@ public:
     //
     AP_Int16        sysid_this_mav;
     AP_Int16        sysid_my_gcs;
+    AP_Int16        sysid_my_rc;  //added by LSH
     AP_Int8         telem_delay;
 #if CLI_ENABLED == ENABLED
     AP_Int8         cli_enabled;

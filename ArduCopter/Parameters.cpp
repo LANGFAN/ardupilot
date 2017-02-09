@@ -56,6 +56,14 @@ const AP_Param::Info Copter::var_info[] = {
     // @User: Advanced
     GSCALAR(sysid_my_gcs,   "SYSID_MYGCS",     255),
 
+    // @Param: SYSID_MYRC
+    // @DisplayName: My RC number
+    // @Description: Allows restricting radio overrides to only come from my ground station
+    // @Values: 255:Mission Planner and DroidPlanner, 252: AP Planner 2
+    // @User: Advanced
+    GSCALAR(sysid_my_rc,   "SYSID_MYRC",     200), //added by LSH
+
+
 #if CLI_ENABLED == ENABLED
     // @Param: CLI_ENABLED
     // @DisplayName: CLI Enable
