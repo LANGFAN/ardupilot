@@ -70,6 +70,7 @@ public:
         GPS_TYPE_ERB = 13,
         GPS_TYPE_MAV = 14,
 		GPS_TYPE_NOVA = 15,
+		GPS_TYPE_SHOUBEI=16,//added by LSH
     };
 
     /// GPS status codes
@@ -114,7 +115,8 @@ public:
         Location location;                  ///< last fix location
         float ground_speed;                 ///< ground speed in m/sec
         float ground_course;                ///< ground course in degrees
-        uint16_t hdop;                      ///< horizontal dilution of precision in cm
+        float gps_heading;									///< body heading measured by differential gps, such as UN237
+		uint16_t hdop;                      ///< horizontal dilution of precision in cm
         uint16_t vdop;                      ///< vertical dilution of precision in cm
         uint8_t num_sats;                   ///< Number of visible satellites        
         Vector3f velocity;                  ///< 3D velocitiy in m/s, in NED format
@@ -125,7 +127,8 @@ public:
         bool have_speed_accuracy:1;
         bool have_horizontal_accuracy:1;
         bool have_vertical_accuracy:1;
-        uint32_t last_gps_time_ms;          ///< the system time we got the last GPS timestamp, milliseconds
+				bool have_gps_heading:1;						///< does this gps give vehicle heading??
+				uint32_t last_gps_time_ms;          ///< the system time we got the last GPS timestamp, milliseconds
     };
 
     // Pass mavlink data to message handlers (for MAV type)
@@ -234,6 +237,20 @@ public:
         return ground_course_cd(primary_instance);
     }
 
+		// vehicle heading measured by diff gps in degrees
+		float gps_heading(uint8_t instance) const {
+				return state[instance].gps_heading;
+		}
+		float gps_heading() const {
+				return gps_heading(primary_instance);
+		}
+		int32_t gps_heading_cd(uint8_t instance) const {
+				return gps_heading(instance) * 100;
+		}
+		int32_t gps_heading_cd() const {
+				return gps_heading_cd(primary_instance);
+		}
+
     // number of locked satellites
     uint8_t num_sats(uint8_t instance) const {
         return state[instance].num_sats;
@@ -309,6 +326,14 @@ public:
         return have_vertical_velocity(primary_instance);
     }
 
+		// return ture if vehicle heading measured by diff gps is valid, such as UN237 product from unistrong company
+		bool have_gps_heading(uint8_t instance) const {
+			return state[instance].have_gps_heading;
+		}
+		bool have_gps_heading(void) const {
+			return have_gps_heading(primary_instance);
+		}
+
     // the expected lag (in seconds) in the position and velocity readings from the gps
     float get_lag() const { return 0.2f; }
 
@@ -340,7 +365,9 @@ public:
     AP_Int16 _rate_ms[2];
     AP_Int8 _save_config;
     AP_Int8 _auto_config;
-    
+		AP_Int32 _x_offset;
+		AP_Int32 _y_offset;
+
     // handle sending of initialisation strings to the GPS
     void send_blob_start(uint8_t instance, const char *_blob, uint16_t size);
     void send_blob_update(uint8_t instance);
@@ -397,6 +424,7 @@ private:
         struct NMEA_detect_state nmea_detect_state;
         struct SBP_detect_state sbp_detect_state;
         struct ERB_detect_state erb_detect_state;
+        struct SHOUBEI_detect_state shoubei_detect_state;//added by LSH
     } detect_state[GPS_MAX_INSTANCES];
 
     struct {

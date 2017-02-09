@@ -227,7 +227,7 @@ void NavEKF2_core::setAidingMode()
             GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING, "EKF2 IMU%u has stopped aiding",(unsigned)imu_index);
             // When not aiding, estimate orientation & height fusing synthetic constant position and zero velocity measurement to constrain tilt errors
             posTimeout = true;
-            velTimeout = true;            
+            velTimeout = true;
             // Reset the normalised innovation to avoid false failing bad fusion tests
             velTestRatio = 0.0f;
             posTestRatio = 0.0f;
@@ -284,9 +284,12 @@ void NavEKF2_core::checkAttitudeAlignmentStatus()
 
     // submit yaw and magnetic field reset requests depending on whether we have compass data
     if (tiltAlignComplete && !yawAlignComplete) {
-        if (use_compass()) {
+        if (use_compass() && !useGpsHeading) {
             magYawResetRequest = true;
             gpsYawResetRequest = false;
+    		} else if(useGpsHeading){
+                magYawResetRequest = true;
+                gpsYawResetRequest = true;
         } else {
             magYawResetRequest = false;
             gpsYawResetRequest = true;
@@ -352,6 +355,7 @@ void NavEKF2_core::setOrigin()
 {
     // assume origin at current GPS location (no averaging)
     EKF_origin = _ahrs->get_gps().location();
+    GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "set ekf_origin: lat %d, lng %d", EKF_origin.lat,EKF_origin.lng);
     // define Earth rotation vector in the NED navigation frame at the origin
     calcEarthRateNED(earthRateNED, _ahrs->get_home().lat);
     validOrigin = true;

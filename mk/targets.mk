@@ -158,7 +158,7 @@ etags:
 	cd .. && etags -f APMrover2/TAGS --lang=c++ $$(git ls-files APMrover2 libraries)
 
 clean:
-	@rm -fr $(BUILDROOT)
+	@rm -fr $(BUILDROOT) $(SRCROOT)/*.cpp.o $(SRCROOT)/*.cpp.d
 
 include $(MK_DIR)/modules.mk
 include $(MK_DIR)/mavgen.mk

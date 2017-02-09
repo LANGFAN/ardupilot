@@ -34,6 +34,7 @@
 #include "AP_GPS_UBLOX.h"
 #include "AP_GPS_MAV.h"
 #include "GPS_Backend.h"
+#include "AP_GPS_SHOUBEI.h"//added by LSH
 
 extern const AP_HAL::HAL &hal;
 
@@ -153,6 +154,20 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("RATE_MS2", 15, AP_GPS, _rate_ms[1], 200),
 
+    // @Param: OFFSET_PX
+    // @DisplayName: Primary GPS Antenna x axis offset to center of UAV
+    // @Description: If primary GPS locates not at UAV center, you should enter its offset manually. This is the x axis offset, just a distance value in centimeter
+    // @Values: 0~100, unit:cm, default value: 35cm
+    // @User: Advanced
+    AP_GROUPINFO("OFFSET_PX", 16, AP_GPS, _x_offset, 35),
+
+    // @Param: OFFSET_PY
+    // @DisplayName: Primary GPS Antenna y axis offset to center of UAV
+    // @Description: If primary GPS locates not at UAV center, you should enter its offset manually. This is the y axis offset, just a distance value in centimeter
+    // @Values: 0~100, unit:cm, default value: 0cm
+    // @User: Advanced
+    AP_GROUPINFO("OFFSET_PY", 17, AP_GPS, _y_offset, 0),
+
     AP_GROUPEND
 };
 
@@ -240,7 +255,7 @@ AP_GPS::detect_instance(uint8_t instance)
         goto found_gps;
     }
 #endif
-    
+
     if (_port[instance] == NULL) {
         // UART not available
         return;
@@ -305,48 +320,59 @@ AP_GPS::detect_instance(uint8_t instance)
             AP_GPS_UBLOX::_detect(dstate->ublox_detect_state, data)) {
             _broadcast_gps_type("u-blox", instance, dstate->current_baud);
             new_gps = new AP_GPS_UBLOX(*this, state[instance], _port[instance]);
-        } 
-		else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_MTK19) &&
-                 AP_GPS_MTK19::_detect(dstate->mtk19_detect_state, data)) {
-			_broadcast_gps_type("MTK19", instance, dstate->current_baud);
-			new_gps = new AP_GPS_MTK19(*this, state[instance], _port[instance]);
-		} 
-		else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_MTK) &&
-                 AP_GPS_MTK::_detect(dstate->mtk_detect_state, data)) {
-			_broadcast_gps_type("MTK", instance, dstate->current_baud);
-			new_gps = new AP_GPS_MTK(*this, state[instance], _port[instance]);
-		}
-        else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_SBP) &&
-                 AP_GPS_SBP::_detect(dstate->sbp_detect_state, data)) {
-            _broadcast_gps_type("SBP", instance, dstate->current_baud);
-            new_gps = new AP_GPS_SBP(*this, state[instance], _port[instance]);
         }
-		// save a bit of code space on a 1280
-		else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_SIRF) &&
-                 AP_GPS_SIRF::_detect(dstate->sirf_detect_state, data)) {
-			_broadcast_gps_type("SIRF", instance, dstate->current_baud);
-			new_gps = new AP_GPS_SIRF(*this, state[instance], _port[instance]);
-		}
-        else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_ERB) &&
-                 AP_GPS_ERB::_detect(dstate->erb_detect_state, data)) {
-            _broadcast_gps_type("ERB", instance, dstate->current_baud);
-            new_gps = new AP_GPS_ERB(*this, state[instance], _port[instance]);
-        }
-        // user has to explicitly set the MAV type, do not use AUTO
-        // Do not try to detect the MAV type, assume it's there
-        else if (_type[instance] == GPS_TYPE_MAV) {
-            _broadcast_gps_type("MAV", instance, dstate->current_baud);
-            new_gps = new AP_GPS_MAV(*this, state[instance], NULL);
-        }
-		else if (now - dstate->detect_started_ms > (ARRAY_SIZE(_baudrates) * GPS_BAUD_TIME_MS)) {
-			// prevent false detection of NMEA mode in
-			// a MTK or UBLOX which has booted in NMEA mode
-			if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_NMEA) &&
-                AP_GPS_NMEA::_detect(dstate->nmea_detect_state, data)) {
-				_broadcast_gps_type("NMEA", instance, dstate->current_baud);
-				new_gps = new AP_GPS_NMEA(*this, state[instance], _port[instance]);
-			}
-		}
+               //added by LSH
+       	else if (now - dstate->detect_started_ms > (ARRAY_SIZE(_baudrates) * GPS_BAUD_TIME_MS)) {
+        			// prevent false detection of NMEA mode in
+        			// a MTK or UBLOX which has booted in NMEA mode
+					 if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_SHOUBEI)&&
+								AP_GPS_SHOUBEI::_detect(dstate->shoubei_detect_state,data))
+							{
+											_broadcast_gps_type("SHOUBEI", instance, dstate->current_baud);
+											new_gps = new AP_GPS_SHOUBEI(*this, state[instance], _port[instance]);
+							}
+      		}
+		// else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_MTK19) &&
+    //              AP_GPS_MTK19::_detect(dstate->mtk19_detect_state, data)) {
+		// 	_broadcast_gps_type("MTK19", instance, dstate->current_baud);
+		// 	new_gps = new AP_GPS_MTK19(*this, state[instance], _port[instance]);
+		// }
+		// else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_MTK) &&
+    //              AP_GPS_MTK::_detect(dstate->mtk_detect_state, data)) {
+		// 	_broadcast_gps_type("MTK", instance, dstate->current_baud);
+		// 	new_gps = new AP_GPS_MTK(*this, state[instance], _port[instance]);
+		// }
+    //     else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_SBP) &&
+    //              AP_GPS_SBP::_detect(dstate->sbp_detect_state, data)) {
+    //         _broadcast_gps_type("SBP", instance, dstate->current_baud);
+    //         new_gps = new AP_GPS_SBP(*this, state[instance], _port[instance]);
+    //     }
+		// // save a bit of code space on a 1280
+		// else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_SIRF) &&
+    //              AP_GPS_SIRF::_detect(dstate->sirf_detect_state, data)) {
+		// 	_broadcast_gps_type("SIRF", instance, dstate->current_baud);
+		// 	new_gps = new AP_GPS_SIRF(*this, state[instance], _port[instance]);
+		// }
+    //     else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_ERB) &&
+    //              AP_GPS_ERB::_detect(dstate->erb_detect_state, data)) {
+    //         _broadcast_gps_type("ERB", instance, dstate->current_baud);
+    //         new_gps = new AP_GPS_ERB(*this, state[instance], _port[instance]);
+    //     }
+    //     // user has to explicitly set the MAV type, do not use AUTO
+    //     // Do not try to detect the MAV type, assume it's there
+    //     else if (_type[instance] == GPS_TYPE_MAV) {
+    //         _broadcast_gps_type("MAV", instance, dstate->current_baud);
+    //         new_gps = new AP_GPS_MAV(*this, state[instance], NULL);
+    //     }
+		// else if (now - dstate->detect_started_ms > (ARRAY_SIZE(_baudrates) * GPS_BAUD_TIME_MS)) {
+		// 	// prevent false detection of NMEA mode in
+		// 	// a MTK or UBLOX which has booted in NMEA mode
+		// 	if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_NMEA) &&
+    //             AP_GPS_NMEA::_detect(dstate->nmea_detect_state, data)) {
+		// 		_broadcast_gps_type("NMEA", instance, dstate->current_baud);
+		// 		new_gps = new AP_GPS_NMEA(*this, state[instance], _port[instance]);
+		// 	}
+		// }
 	}
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_QURT
@@ -359,7 +385,7 @@ found_gps:
 	}
 }
 
-AP_GPS::GPS_Status 
+AP_GPS::GPS_Status
 AP_GPS::highest_supported_status(uint8_t instance) const
 {
     if (drivers[instance] != NULL)
@@ -367,7 +393,7 @@ AP_GPS::highest_supported_status(uint8_t instance) const
     return AP_GPS::GPS_OK_FIX_3D;
 }
 
-AP_GPS::GPS_Status 
+AP_GPS::GPS_Status
 AP_GPS::highest_supported_status(void) const
 {
     if (drivers[primary_instance] != NULL)
@@ -450,7 +476,7 @@ AP_GPS::update(void)
         if (state[i].status != NO_GPS) {
             num_instances = i+1;
         }
-        if (_auto_switch) {            
+        if (_auto_switch) {
             if (i == primary_instance) {
                 continue;
             }
@@ -510,9 +536,9 @@ AP_GPS::handle_msg(const mavlink_message_t *msg)
 /*
   set HIL (hardware in the loop) status for a GPS instance
  */
-void 
-AP_GPS::setHIL(uint8_t instance, GPS_Status _status, uint64_t time_epoch_ms, 
-               const Location &_location, const Vector3f &_velocity, uint8_t _num_sats, 
+void
+AP_GPS::setHIL(uint8_t instance, GPS_Status _status, uint64_t time_epoch_ms,
+               const Location &_location, const Vector3f &_velocity, uint8_t _num_sats,
                uint16_t hdop)
 {
     if (instance >= GPS_MAX_INSTANCES) {
@@ -560,7 +586,7 @@ void AP_GPS::setHIL_Accuracy(uint8_t instance, float vdop, float hacc, float vac
    be used to allow a user to control a GPS port via the
    SERIAL_CONTROL protocol
  */
-void 
+void
 AP_GPS::lock_port(uint8_t instance, bool lock)
 {
 
@@ -575,7 +601,7 @@ AP_GPS::lock_port(uint8_t instance, bool lock)
 }
 
     //Inject a packet of raw binary to a GPS
-void 
+void
 AP_GPS::inject_data(uint8_t *data, uint8_t len)
 {
     //Support broadcasting to all GPSes.
@@ -588,14 +614,14 @@ AP_GPS::inject_data(uint8_t *data, uint8_t len)
     }
 }
 
-void 
+void
 AP_GPS::inject_data(uint8_t instance, uint8_t *data, uint8_t len)
 {
     if (instance < GPS_MAX_INSTANCES && drivers[instance] != NULL)
         drivers[instance]->inject_data(data, len);
-}  
+}
 
-void 
+void
 AP_GPS::send_mavlink_gps_raw(mavlink_channel_t chan)
 {
     static uint32_t last_send_time_ms[MAVLINK_COMM_NUM_BUFFERS];
@@ -628,7 +654,7 @@ AP_GPS::send_mavlink_gps_raw(mavlink_channel_t chan)
         num_sats(0));
 }
 
-void 
+void
 AP_GPS::send_mavlink_gps2_raw(mavlink_channel_t chan)
 {
     static uint32_t last_send_time_ms[MAVLINK_COMM_NUM_BUFFERS];
@@ -658,7 +684,7 @@ AP_GPS::send_mavlink_gps2_raw(mavlink_channel_t chan)
         0);
 }
 
-void 
+void
 AP_GPS::send_mavlink_gps_rtk(mavlink_channel_t chan)
 {
     if (drivers[0] != NULL && drivers[0]->highest_supported_status() > AP_GPS::GPS_OK_FIX_3D) {
@@ -666,7 +692,7 @@ AP_GPS::send_mavlink_gps_rtk(mavlink_channel_t chan)
     }
 }
 
-void 
+void
 AP_GPS::send_mavlink_gps2_rtk(mavlink_channel_t chan)
 {
     if (drivers[1] != NULL && drivers[1]->highest_supported_status() > AP_GPS::GPS_OK_FIX_3D) {
@@ -715,7 +741,7 @@ AP_GPS::_broadcast_gps_type(const char *type, uint8_t instance, int8_t baud_inde
 }
 
 
-/* 
+/*
    re-assemble GPS_RTCM_DATA message
  */
 void AP_GPS::handle_gps_rtcm_data(const mavlink_message_t *msg)
@@ -727,7 +753,7 @@ void AP_GPS::handle_gps_rtcm_data(const mavlink_message_t *msg)
         // invalid packet
         return;
     }
-    
+
     if ((packet.flags & 1) == 0) {
         // it is not fragmented, pass direct
         inject_data_all(packet.data, packet.len);
@@ -796,5 +822,5 @@ void AP_GPS::inject_data_all(const uint8_t *data, uint16_t len)
             drivers[i]->inject_data(data, len);
         }
     }
-    
+
 }

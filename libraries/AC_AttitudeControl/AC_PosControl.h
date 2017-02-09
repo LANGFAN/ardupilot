@@ -16,14 +16,17 @@
 #define POSCONTROL_ACCELERATION_MIN             50.0f   // minimum horizontal acceleration in cm/s/s - used for sanity checking acceleration in leash length calculation
 #define POSCONTROL_ACCEL_XY                     100.0f  // default horizontal acceleration in cm/s/s.  This is overwritten by waypoint and loiter controllers
 #define POSCONTROL_ACCEL_XY_MAX                 980.0f  // max horizontal acceleration in cm/s/s that the position velocity controller will ask from the lower accel controller
-#define POSCONTROL_STOPPING_DIST_Z_MAX          200.0f  // max stopping distance vertically   
+#define POSCONTROL_STOPPING_DIST_Z_MAX          200.0f  // max stopping distance vertically
                                                         // should be 1.5 times larger than POSCONTROL_ACCELERATION.
                                                         // max acceleration = max lean angle * 980 * pi / 180.  i.e. 23deg * 980 * 3.141 / 180 = 393 cm/s/s
 #define POSCONTROL_JERK_LIMIT_CMSSS             1700.0f // default jerk limit on horizontal acceleration (unit: m/s/s/s)
 
-#define POSCONTROL_SPEED                        500.0f  // default horizontal speed in cm/s
-#define POSCONTROL_SPEED_DOWN                  -150.0f  // default descent rate in cm/s
-#define POSCONTROL_SPEED_UP                     250.0f  // default climb rate in cm/s
+#define POSCONTROL_SPEED                        300.0f  // default horizontal speed in cm/s
+#define POSCONTROL_SPEED_DOWN                  -50.0f  // default descent rate in cm/s
+#define POSCONTROL_SPEED_UP                     50.0f  // default climb rate in cm/s
+// #define POSCONTROL_SPEED                        500.0f  // default horizontal speed in cm/s
+// #define POSCONTROL_SPEED_DOWN                  -150.0f  // default descent rate in cm/s
+// #define POSCONTROL_SPEED_UP                     250.0f  // default climb rate in cm/s
 #define POSCONTROL_VEL_XY_MAX_FROM_POS_ERR      200.0f  // max speed output from pos_to_vel controller when feed forward is used
 
 #define POSCONTROL_ACCEL_Z                      250.0f  // default vertical acceleration in cm/s/s.
@@ -146,7 +149,7 @@ public:
 
     /// get_alt_error - returns altitude error in cm
     float get_alt_error() const;
-    
+
     // returns horizontal error in cm
     float get_horizontal_error() const;
 
@@ -196,7 +199,7 @@ public:
     /// set_limit_accel_xy - mark that accel has been limited
     ///     this prevents integrator buildup
     void set_limit_accel_xy(void) { _limit.accel_xy = true; }
-    
+
     /// calc_leash_length - calculates the horizontal leash length given a maximum speed, acceleration
     ///     should be called whenever the speed, acceleration or position kP is modified
     void calc_leash_length_xy();

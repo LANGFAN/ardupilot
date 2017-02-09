@@ -98,7 +98,8 @@ void Copter::guided_pos_control_start()
     wp_nav.set_wp_destination(stopping_point, false);
 
     // initialise yaw
-    set_auto_yaw_mode(get_default_auto_yaw_mode(false));
+//    set_auto_yaw_mode(get_default_auto_yaw_mode(false));
+    set_auto_yaw_mode(AUTO_YAW_HOLD);//changed by LSH   when goto the disire don't change the yaw
 }
 
 // initialise guided mode's velocity controller

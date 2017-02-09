@@ -54,7 +54,7 @@ public:
 
     // setup this core backend
     bool setup_core(NavEKF2 *_frontend, uint8_t _imu_index, uint8_t _core_index);
-    
+
     // Initialise the states from accelerometer and magnetometer data (if present)
     // This method can only be used when the vehicle is static
     bool InitialiseFilterBootstrap(void);
@@ -277,7 +277,7 @@ public:
 
     // get the IMU index
     uint8_t getIMUIndex(void) const { return imu_index; }
-    
+
 private:
     // Reference to the global EKF frontend for parameters
     NavEKF2 *frontend;
@@ -653,7 +653,7 @@ private:
 
     // effective value of MAG_CAL
     uint8_t effective_magCal(void) const;
-    
+
     // Length of FIFO buffers used for non-IMU sensor data.
     // Must be larger than the time period defined by IMU_BUFFER_LENGTH
     static const uint32_t OBS_BUFFER_LENGTH = 5;
@@ -757,6 +757,10 @@ private:
     uint32_t lastGpsAidBadTime_ms;  // time in msec gps aiding was last detected to be bad
     float posDownAtTakeoff;         // flight vehicle vertical position sampled at transition from on-ground to in-air and used as a reference (m)
     bool useGpsVertVel;             // true if GPS vertical velocity should be used
+    // MODIFY
+    bool useGpsHeading;             // true if vehicle heading can be measured by diff gps
+    bool badGpsYaw;                 // true if great yaw error caused by using diff gps heading or gps accuracy problem exists
+    // MODIFY END
     float yawResetAngle;            // Change in yaw angle due to last in-flight yaw reset in radians. A positive value means the yaw angle has increased.
     uint32_t lastYawReset_ms;       // System time at which the last yaw reset occurred. Returned by getLastYawResetAngle
     Vector3f tiltErrVec;            // Vector of most recent attitude error correction from Vel,Pos fusion

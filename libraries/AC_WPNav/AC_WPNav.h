@@ -20,13 +20,16 @@
 #define WPNAV_LOITER_ACCEL_MIN           25.0f      // minimum acceleration in loiter mode
 #define WPNAV_LOITER_JERK_MAX_DEFAULT  1000.0f      // maximum jerk in cm/s/s/s in loiter mode
 
-#define WPNAV_WP_SPEED                  500.0f      // default horizontal speed between waypoints in cm/s
+#define WPNAV_WP_SPEED                  250.0f      // default horizontal speed between waypoints in cm/s
+// #define WPNAV_WP_SPEED                  500.0f      // default horizontal speed between waypoints in cm/s
 #define WPNAV_WP_SPEED_MIN              100.0f      // minimum horizontal speed between waypoints in cm/s
 #define WPNAV_WP_TRACK_SPEED_MIN         50.0f      // minimum speed along track of the target point the vehicle is chasing in cm/s (used as target slows down before reaching destination)
 #define WPNAV_WP_RADIUS                 200.0f      // default waypoint radius in cm
 
-#define WPNAV_WP_SPEED_UP               250.0f      // default maximum climb velocity
-#define WPNAV_WP_SPEED_DOWN             150.0f      // default maximum descent velocity
+#define WPNAV_WP_SPEED_UP               50.0f      // default maximum climb velocity
+#define WPNAV_WP_SPEED_DOWN             50.0f      // default maximum descent velocity
+// #define WPNAV_WP_SPEED_UP               250.0f      // default maximum climb velocity
+// #define WPNAV_WP_SPEED_DOWN             150.0f      // default maximum descent velocity
 
 #define WPNAV_WP_ACCEL_Z_DEFAULT        100.0f      // default vertical acceleration between waypoints in cm/s/s
 

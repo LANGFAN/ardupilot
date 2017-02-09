@@ -59,6 +59,12 @@ struct ERB_detect_state {
     uint8_t ck_a, ck_b;
 };
 
+//added by LSH
+struct SHOUBEI_detect_state {
+    uint8_t step;
+    uint8_t ck;
+};
+
 struct SBP_detect_state {
     enum {
         WAITING = 0,

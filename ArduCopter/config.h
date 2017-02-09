@@ -245,7 +245,8 @@
 //////////////////////////////////////////////////////////////////////////////
 //  MAGNETOMETER
 #ifndef MAGNETOMETER
- # define MAGNETOMETER                   ENABLED
+ // # define MAGNETOMETER                   ENABLED
+ # define MAGNETOMETER                   DISABLED
 #endif
 
 // expected magnetic field strength.  pre-arm checks will fail if 50% higher or lower than this value
@@ -489,7 +490,8 @@
 
 // AUTO Mode
 #ifndef WP_YAW_BEHAVIOR_DEFAULT
- # define WP_YAW_BEHAVIOR_DEFAULT   WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL
+ // # define WP_YAW_BEHAVIOR_DEFAULT   WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL
+ # define WP_YAW_BEHAVIOR_DEFAULT   WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP
 #endif
 
 #ifndef AUTO_YAW_SLEW_RATE
@@ -512,7 +514,8 @@
  # define ROLL_PITCH_INPUT_MAX      4500            // roll, pitch input range
 #endif
 #ifndef DEFAULT_ANGLE_MAX
- # define DEFAULT_ANGLE_MAX         4500            // ANGLE_MAX parameters default value
+ // # define DEFAULT_ANGLE_MAX         4500            // ANGLE_MAX parameters default value
+ # define DEFAULT_ANGLE_MAX         2000            // ANGLE_MAX parameters default value
 #endif
 #ifndef ANGLE_RATE_MAX
  # define ANGLE_RATE_MAX            18000           // default maximum rotation rate in roll/pitch axis requested by angle controller used in stabilize, loiter, rtl, auto flight modes

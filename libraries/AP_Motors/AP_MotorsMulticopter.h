@@ -19,7 +19,8 @@
 #define AP_MOTORS_THST_HOVER_MAX        0.6875f // maximum possible hover throttle
 #define AP_MOTORS_SPIN_MIN_DEFAULT      0.15f   // throttle out ratio which produces the minimum thrust.  (i.e. 0 ~ 1 ) of the full throttle range
 #define AP_MOTORS_SPIN_MAX_DEFAULT      0.95f   // throttle out ratio which produces the maximum thrust.  (i.e. 0 ~ 1 ) of the full throttle range
-#define AP_MOTORS_SPIN_ARM_DEFAULT      0.10f   // throttle out ratio which produces the armed spin rate.  (i.e. 0 ~ 1 ) of the full throttle range
+// #define AP_MOTORS_SPIN_ARM_DEFAULT      0.10f   // throttle out ratio which produces the armed spin rate.  (i.e. 0 ~ 1 ) of the full throttle range
+#define AP_MOTORS_SPIN_ARM_DEFAULT      0.0f   // throttle out ratio which produces the armed spin rate.  (i.e. 0 ~ 1 ) of the full throttle range
 #define AP_MOTORS_BAT_VOLT_MAX_DEFAULT  0.0f    // voltage limiting max default
 #define AP_MOTORS_BAT_VOLT_MIN_DEFAULT  0.0f    // voltage limiting min default (voltage dropping below this level will have no effect)
 #define AP_MOTORS_BAT_CURR_MAX_DEFAULT  0.0f    // current limiting max default
@@ -92,13 +93,13 @@ public:
     // get minimum or maximum pwm value that can be output to motors
     int16_t             get_pwm_output_min() const;
     int16_t             get_pwm_output_max() const;
-    
+
     // set thrust compensation callback
     FUNCTOR_TYPEDEF(thrust_compensation_fn_t, void, float *, uint8_t);
     void                set_thrust_compensation_callback(thrust_compensation_fn_t callback) {
         _thrust_compensation_callback = callback;
     }
-    
+
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo        var_info[];
 

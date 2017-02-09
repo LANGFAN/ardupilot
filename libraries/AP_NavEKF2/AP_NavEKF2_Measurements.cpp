@@ -167,7 +167,7 @@ void NavEKF2_core::readMagData()
 {
     if (!_ahrs->get_compass()) {
         allMagSensorsFailed = true;
-        return;        
+        return;
     }
     // If we are a vehicle with a sideslip constraint to aid yaw estimation and we have timed out on our last avialable
     // magnetometer, then declare the magnetometers as failed for this flight
@@ -447,6 +447,15 @@ void NavEKF2_core::readGpsData()
                 useGpsVertVel = false;
             }
 
+            // MODIFY
+            // Check if GPS can output vehicle heading and realign yaw with gpsHeading accordingly
+            if (_ahrs->get_gps().have_gps_heading() && frontend->_fusionModeGPS == 0 && !badGpsYaw) {
+                useGpsHeading = true;
+            } else {
+                useGpsHeading = false;
+            }
+            // MODIFY END
+
             // Monitor quality of the GPS velocity data before and after alignment using separate checks
             if (PV_AidingMode != AID_ABSOLUTE) {
                 // Pre-alignment checks
@@ -463,6 +472,7 @@ void NavEKF2_core::readGpsData()
 
             // Set the EKF origin and magnetic field declination if not previously set  and GPS checks have passed
             if (gpsGoodToAlign && !validOrigin) {
+              if(_ahrs->get_gps().status() >= AP_GPS::GPS_OK_FIX_3D_RTK){
                 setOrigin();
 
                 // set the NE earth magnetic field states using the published declination
@@ -474,7 +484,7 @@ void NavEKF2_core::readGpsData()
 
                 // Set the uncertinty of the GPS origin height
                 ekfOriginHgtVar = sq(gpsHgtAccuracy);
-
+				}
             }
 
             // convert GPS measurements to local NED and save to buffer to be fused later if we have a valid origin

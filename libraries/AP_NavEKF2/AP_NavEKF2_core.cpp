@@ -76,7 +76,7 @@ bool NavEKF2_core::setup_core(NavEKF2 *_frontend, uint8_t _imu_index, uint8_t _c
     }
     if(!storedBaro.init(OBS_BUFFER_LENGTH)) {
         return false;
-    } 
+    }
     if(!storedTAS.init(OBS_BUFFER_LENGTH)) {
         return false;
     }
@@ -95,7 +95,7 @@ bool NavEKF2_core::setup_core(NavEKF2 *_frontend, uint8_t _imu_index, uint8_t _c
 
     return true;
 }
-    
+
 
 /********************************************************
 *                   INIT FUNCTIONS                      *
@@ -267,7 +267,10 @@ void NavEKF2_core::InitialiseVariables()
     memset(&storedRngMeas, 0, sizeof(storedRngMeas));
     terrainHgtStable = true;
     ekfOriginHgtVar = 0.0f;
-
+      // MODIFY
+      useGpsHeading = false;
+	    badGpsYaw = false;
+      // MODIFY END
     // zero data buffers
     storedIMU.reset();
     storedGPS.reset();

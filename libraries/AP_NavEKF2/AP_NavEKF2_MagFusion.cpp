@@ -187,6 +187,29 @@ void NavEKF2_core::realignYawGPS()
                 allMagSensorsFailed = false;
             }
         }
+    } else if(useGpsHeading && gpsYawResetRequest){
+      // get quaternion from existing filter states and calculate roll, pitch and yaw angles
+      Vector3f eulerAngles;
+      stateStruct.quat.to_euler(eulerAngles.x, eulerAngles.y, eulerAngles.z);
+      // if using differential GPS which can measure body heading
+      float gpsYaw = wrap_PI(_ahrs->get_gps().gps_heading());
+      // calculate new filter quaternion states from Euler angles
+      stateStruct.quat.from_euler(eulerAngles.x, eulerAngles.y, gpsYaw);
+      // reset the velocity and posiiton states as they will be inaccurate due to bad yaw
+      ResetVelocity();
+      ResetPosition();
+      // send yaw alignment information to console
+      GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "EKF2 IMU%u yaw aligned to GPS Heading",(unsigned)imu_index);
+      // zero the attitude covariances becasue the corelations will now be invalid
+      zeroAttCovOnly();
+
+      // record the yaw reset event
+      recordYawReset();
+
+      // clear all pending yaw reset requests
+      gpsYawResetRequest = false;
+      magYawResetRequest = false;
+
     }
 }
 
@@ -218,14 +241,33 @@ void NavEKF2_core::SelectMagFusion()
     // check for availability of magnetometer data to fuse
     magDataToFuse = storedMag.recall(magDataDelayed,imuDataDelayed.time_ms);
 
+    // or if we have diff GPS to measure vehicle heading, so using it first;
+    if(useGpsHeading){
+      fuseEulerYaw();
+      // if yawTestRatio larger than 1.0f for about 5000ms, disable diff GPS heading
+      if(!badGpsYaw){
+        // if diff gps heading have great error, is yawTestRatio larger than 1.0f?? test it
+        if(yawTestRatio < 1.0f && !faultStatus.bad_yaw){
+          lastSynthYawTime_ms = imuSampleTime_ms;
+        }
+        if(imuSampleTime_ms - lastSynthYawTime_ms > 5000){
+          badGpsYaw = true;
+          useGpsHeading = false;
+        }
+      }
+
+      magTestRatio.zero();
+      yawTestRatio = 0.0f;
+    }
+
     // Control reset of yaw and magnetic field states if we are using compass data
-    if (magDataToFuse && use_compass()) {
+    if (magDataToFuse && use_compass() && !useGpsHeading) {
         controlMagYawReset();
     }
 
     // determine if conditions are right to start a new fusion cycle
     // wait until the EKF time horizon catches up with the measurement
-    bool dataReady = (magDataToFuse && statesInitialised && use_compass() && yawAlignComplete);
+    bool dataReady = (magDataToFuse && statesInitialised && use_compass() && yawAlignComplete && !useGpsHeading);
     if (dataReady) {
         // use the simple method of declination to maintain heading if we cannot use the magnetic field states
         if(inhibitMagStates || magStateResetRequest || !magStateInitComplete) {
@@ -292,7 +334,7 @@ void NavEKF2_core::SelectMagFusion()
 void NavEKF2_core::FuseMagnetometer()
 {
     hal.util->perf_begin(_perf_test[1]);
-    
+
     // declarations
     ftype &q0 = mag_state.q0;
     ftype &q1 = mag_state.q1;
@@ -315,7 +357,7 @@ void NavEKF2_core::FuseMagnetometer()
     Vector6 SK_MZ;
 
     hal.util->perf_end(_perf_test[1]);
-    
+
     // perform sequential fusion of magnetometer measurements.
     // this assumes that the errors in the different components are
     // uncorrelated which is not true, however in the absence of covariance
@@ -820,9 +862,12 @@ void NavEKF2_core::fuseEulerYaw()
     // If we can't use compass data, set the  meaurement to the predicted
     // to prevent uncontrolled variance growth whilst on ground without magnetometer
     float measured_yaw;
-    if (use_compass() && yawAlignComplete && magStateInitComplete) {
+    if (use_compass() && yawAlignComplete && magStateInitComplete && !useGpsHeading) {
         measured_yaw = wrap_PI(-atan2f(magMeasNED.y, magMeasNED.x) + _ahrs->get_compass()->get_declination());
-    } else {
+    } else if(useGpsHeading){
+        measured_yaw = wrap_PI(_ahrs->get_gps().gps_heading());
+        // GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "GPS Yaw %f", measured_yaw);
+    }else {
         measured_yaw = predicted_yaw;
     }
 
