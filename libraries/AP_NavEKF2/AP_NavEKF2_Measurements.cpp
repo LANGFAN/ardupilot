@@ -484,7 +484,7 @@ void NavEKF2_core::readGpsData()
 
                 // Set the uncertinty of the GPS origin height
                 ekfOriginHgtVar = sq(gpsHgtAccuracy);
-				}
+				      }
             }
 
             // convert GPS measurements to local NED and save to buffer to be fused later if we have a valid origin

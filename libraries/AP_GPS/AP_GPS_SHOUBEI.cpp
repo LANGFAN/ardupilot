@@ -67,6 +67,7 @@ extern const AP_HAL::HAL& hal;
 #define UniStrong_INIT_MSG\
 	"$JOFF\r\n"\
 	"$JDIFF,RTK\r\n"\
+    "$JAGE,2700\r\n"\
 	"$JASC,GPGGA,10\r\n"\
 	"$JASC,GPVTG,10\r\n"\
 	"$JASC,GPHPR,15\r\n"\
@@ -118,7 +119,7 @@ bool AP_GPS_SHOUBEI::read(void)
             parsed = true;
         }
     }
-		fill_uav_center_pos();
+	fill_uav_center_pos();
     return parsed;
 }
 
@@ -526,6 +527,7 @@ bool AP_GPS_SHOUBEI::_term_complete()
             _gps_data_good = _term[0] == 'A';
             break;
         case _GPS_SENTENCE_GGA + 6: // Fix data (GGA)
+            gps_fix_type=_term[0] - '0';
             _gps_data_good = _term[0] > '0';
             break;
         case _GPS_SENTENCE_VTG + 9: // validity (VTG) (we may not see this field)
@@ -537,7 +539,24 @@ bool AP_GPS_SHOUBEI::_term_complete()
         case _GPS_SENTENCE_GGA + 8: // HDOP (GGA)
             _new_hdop = (uint16_t)_parse_decimal_100(_term);
             break;
-
+        case _GPS_SENTENCE_GGA + 13:
+            _new_rtk_age=atol(_term);//差分龄期
+            break;
+        case _GPS_SENTENCE_GGA + 14:
+		/*flag=true GPS的定位状态是3D以下
+			flag=false GPS的定位状态是3D以上
+		*/
+            _new_rtk_base_id=atol(_term);//差分基站ID
+            if(_new_rtk_age>=10&&gps_fix_type>=4&&!gps_base_timeout){
+				gps_base_timeout=true;
+				GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"RTCM TIMEOUT");
+            }else if(gps_fix_type<4){
+				gps_base_timeout=false;
+			}else if(_new_rtk_age<10 && gps_base_timeout && gps_fix_type>=4){
+				GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"RTCM RECIEVED");
+				gps_base_timeout=false;
+			}
+            break;
         // time and date
         //
         case _GPS_SENTENCE_RMC + 1: // Time (RMC)

@@ -16,12 +16,12 @@ void Copter::update_home_from_EKF()
     }
 
     // special logic if home is set in-flight
-    if (motors.armed()) {
+    // if (motors.armed()) {
         set_home_to_current_location_inflight();
-    } else {
+    // } else {
         // move home to current ekf location (this will set home_state to HOME_SET)
-        set_home_to_current_location();
-    }
+        // set_home_to_current_location();
+    // }
 }
 
 // set_home_to_current_location_inflight - set home to current GPS location (horizontally) and EKF origin vertically
@@ -29,9 +29,12 @@ void Copter::set_home_to_current_location_inflight() {
     // get current location from EKF
     Location temp_loc;
     if (inertial_nav.get_location(temp_loc)) {
+        // const struct Location &ekf_origin = inertial_nav.get_origin();
+        // temp_loc.alt = ekf_origin.alt;
+        // set_home(temp_loc);
         const struct Location &ekf_origin = inertial_nav.get_origin();
-        temp_loc.alt = ekf_origin.alt;
-        set_home(temp_loc);
+        // temp_loc.alt = ekf_origin.alt;
+        set_home(ekf_origin);
     }
 }
 
@@ -135,9 +138,9 @@ void Copter::set_system_time_from_GPS()
     if (gps.status() >= AP_GPS::GPS_OK_FIX_3D) {
         // set system clock for log timestamps
         uint64_t gps_timestamp = gps.time_epoch_usec();
-                
+
         hal.util->set_system_clock(gps_timestamp);
-                
+
         // update signing timestamp
         GCS_MAVLINK::update_signing_timestamp(gps_timestamp);
 

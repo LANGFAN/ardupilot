@@ -154,7 +154,11 @@ private:
     uint16_t _new_hdop;                                                 ///< HDOP parsed from a term
     uint8_t _new_satellite_count;                       ///< satellite count parsed from a term
 
-
+	// down 3 lines adde by LSH
+	bool gps_base_timeout;
+	uint8_t gps_fix_type;
+  uint8_t _new_rtk_base_id;
+	uint32_t _new_rtk_age;
 
     uint32_t _last_RMC_ms = 0;
     uint32_t _last_GGA_ms = 0;

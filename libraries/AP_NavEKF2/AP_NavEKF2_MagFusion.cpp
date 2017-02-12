@@ -199,7 +199,7 @@ void NavEKF2_core::realignYawGPS()
       ResetVelocity();
       ResetPosition();
       // send yaw alignment information to console
-      GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "EKF2 IMU%u yaw aligned to GPS Heading",(unsigned)imu_index);
+      GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING, "EKF2 IMU%u yaw aligned to GPS Heading",(unsigned)imu_index);
       // zero the attitude covariances becasue the corelations will now be invalid
       zeroAttCovOnly();
 
