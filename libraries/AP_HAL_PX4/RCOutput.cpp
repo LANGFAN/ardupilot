@@ -14,13 +14,17 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_sbus.h>
 
+#if FIRMWARENAME == ArduCopter
+#define COPTER_USED 1
+#endif
+
 extern const AP_HAL::HAL& hal;
 
 using namespace PX4;
 
 /*
   enable RCOUT_DEBUG_LATENCY to measure output latency using a logic
-  analyser. AUX6 will go high during the cork/push output. 
+  analyser. AUX6 will go high during the cork/push output.
  */
 #define RCOUT_DEBUG_LATENCY 0
 
@@ -39,12 +43,12 @@ void PX4RCOutput::init()
     }
 
     _rate_mask = 0;
-    _alt_fd = -1;    
+    _alt_fd = -1;
     _servo_count = 0;
     _alt_servo_count = 0;
 
     if (ioctl(_pwm_fd, PWM_SERVO_GET_COUNT, (unsigned long)&_servo_count) != 0) {
-        hal.console->printf("RCOutput: Unable to get servo count\n");        
+        hal.console->printf("RCOutput: Unable to get servo count\n");
         return;
     }
 
@@ -78,7 +82,7 @@ void PX4RCOutput::init()
 }
 
 
-void PX4RCOutput::_init_alt_channels(void) 
+void PX4RCOutput::_init_alt_channels(void)
 {
     if (_alt_fd == -1) {
         return;
@@ -92,14 +96,14 @@ void PX4RCOutput::_init_alt_channels(void)
         return;
     }
     if (ioctl(_alt_fd, PWM_SERVO_GET_COUNT, (unsigned long)&_alt_servo_count) != 0) {
-        hal.console->printf("RCOutput: Unable to get servo count\n");        
+        hal.console->printf("RCOutput: Unable to get servo count\n");
     }
 }
 
 /*
   set output frequency on outputs associated with fd
  */
-void PX4RCOutput::set_freq_fd(int fd, uint32_t chmask, uint16_t freq_hz) 
+void PX4RCOutput::set_freq_fd(int fd, uint32_t chmask, uint16_t freq_hz)
 {
     // we can't set this per channel
     if (freq_hz > 50 || freq_hz == 1) {
@@ -120,7 +124,7 @@ void PX4RCOutput::set_freq_fd(int fd, uint32_t chmask, uint16_t freq_hz)
         _freq_hz = freq_hz;
     }
 
-    /* work out the new rate mask. The outputs have 3 groups of servos. 
+    /* work out the new rate mask. The outputs have 3 groups of servos.
 
        Group 0: channels 0 1
        Group 1: channels 4 5 6 7
@@ -165,7 +169,7 @@ void PX4RCOutput::set_freq_fd(int fd, uint32_t chmask, uint16_t freq_hz)
 /*
   set output frequency
  */
-void PX4RCOutput::set_freq(uint32_t chmask, uint16_t freq_hz) 
+void PX4RCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
 {
     if (freq_hz > 50 && _output_mode == MODE_PWM_ONESHOT) {
         // rate is irrelevent in oneshot
@@ -174,14 +178,14 @@ void PX4RCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
 
     // re-fetch servo count as it might have changed due to a change in BRD_PWM_COUNT
     if (_pwm_fd != -1 && ioctl(_pwm_fd, PWM_SERVO_GET_COUNT, (unsigned long)&_servo_count) != 0) {
-        hal.console->printf("RCOutput: Unable to get servo count\n");        
+        hal.console->printf("RCOutput: Unable to get servo count\n");
         return;
     }
     if (_alt_fd != -1 && ioctl(_alt_fd, PWM_SERVO_GET_COUNT, (unsigned long)&_alt_servo_count) != 0) {
-        hal.console->printf("RCOutput: Unable to get alt servo count\n");        
+        hal.console->printf("RCOutput: Unable to get alt servo count\n");
         return;
     }
-    
+
     // greater than 400 doesn't give enough room at higher periods for
     // the down pulse
     if (freq_hz > 400) {
@@ -197,7 +201,7 @@ void PX4RCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
     }
 }
 
-uint16_t PX4RCOutput::get_freq(uint8_t ch) 
+uint16_t PX4RCOutput::get_freq(uint8_t ch)
 {
     if (_rate_mask & (1U<<ch)) {
         return _freq_hz;
@@ -330,7 +334,7 @@ void PX4RCOutput::write(uint8_t ch, uint16_t period_us)
     }
 }
 
-uint16_t PX4RCOutput::read(uint8_t ch) 
+uint16_t PX4RCOutput::read(uint8_t ch)
 {
     if (ch >= PX4_NUM_OUTPUT_CHANNELS) {
         return 0;
@@ -339,7 +343,7 @@ uint16_t PX4RCOutput::read(uint8_t ch)
     // otherwise use the value we last sent. This makes it easier to
     // observe the behaviour of failsafe in px4io
     for (uint8_t i=0; i<ORB_MULTI_MAX_INSTANCES; i++) {
-        if (_outputs[i].pwm_sub >= 0 && 
+        if (_outputs[i].pwm_sub >= 0 &&
             ch < _outputs[i].outputs.noutputs &&
             _outputs[i].outputs.output[ch] > 0) {
             return _outputs[i].outputs.output[ch];
@@ -423,14 +427,22 @@ void PX4RCOutput::_publish_actuators(void)
     }
     bool armed = hal.util->get_soft_armed();
 	actuators.timestamp = hrt_absolute_time();
+  #ifdef COPTER_USED
     for (uint8_t i=0; i<actuators.nvalues; i++) {
-        if (!armed) {
-            actuators.values[i] = 0;
-        } else {
-            actuators.values[i] = (_period[i] - _esc_pwm_min) / (float)(_esc_pwm_max - _esc_pwm_min);
-        }
-        // actuator values are from -1 to 1
-        actuators.values[i] = actuators.values[i]*2 - 1;
+  #else
+    for (uint8_t i=0; i<4; i++) {
+  #endif
+      if (!armed) {
+          actuators.values[i] = 0;
+      } else {
+        #ifdef COPTER_USED
+          actuators.values[i] = (_period[i] - _esc_pwm_min) / (float)(_esc_pwm_max - _esc_pwm_min);
+        #else
+          actuators.values[i] = (_period[2] - _esc_pwm_min) / (float)(_esc_pwm_max - _esc_pwm_min);
+        #endif
+      }
+      // actuator values are from -1 to 1
+      actuators.values[i] = actuators.values[i]*2 - 1;
     }
 
     if (_actuator_direct_pub == NULL) {
@@ -471,7 +483,7 @@ void PX4RCOutput::_send_outputs(void)
         }
         _last_config_us = now;
     }
-    
+
     if (_need_update && _pwm_fd != -1) {
         _need_update = false;
         perf_begin(_perf_rcout);
@@ -514,8 +526,8 @@ void PX4RCOutput::_send_outputs(void)
 update_pwm:
     for (uint8_t i=0; i<ORB_MULTI_MAX_INSTANCES; i++) {
         bool rc_updated = false;
-        if (_outputs[i].pwm_sub >= 0 && 
-            orb_check(_outputs[i].pwm_sub, &rc_updated) == 0 && 
+        if (_outputs[i].pwm_sub >= 0 &&
+            orb_check(_outputs[i].pwm_sub, &rc_updated) == 0 &&
             rc_updated) {
             orb_copy(ORB_ID(actuator_outputs), _outputs[i].pwm_sub, &_outputs[i].outputs);
         }

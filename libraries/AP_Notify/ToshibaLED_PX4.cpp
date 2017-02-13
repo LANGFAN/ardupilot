@@ -35,6 +35,7 @@ extern const AP_HAL::HAL& hal;
 
 bool ToshibaLED_PX4::hw_init()
 {
+    rgb_status_cur = rgb_status_prev = RGB_WHITE;
     // open the rgb led device
     _rgbled_fd = open(RGBLED0_DEVICE_PATH, 0);
     if (_rgbled_fd == -1) {
@@ -60,6 +61,11 @@ bool ToshibaLED_PX4::hw_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
     return true;
 }
 
+void ToshibaLED_PX4::rgb_status_update(VEHICLE_RGB_STATUS &rgb_status)
+{
+    rgb_status_cur = rgb_status;
+}
+
 void ToshibaLED_PX4::update_timer(void)
 {
     if (last.v == next.v) {
@@ -73,6 +79,11 @@ void ToshibaLED_PX4::update_timer(void)
     v.blue  = newv.b;
 
     ioctl(_rgbled_fd, RGBLED_SET_RGB, (unsigned long)&v);
+
+    if(rgb_status_changed()){
+      ioctl(_rgbled_fd, RGBLED_SET_RGBSTATUS, (unsigned long)rgb_status_cur);
+      rgb_status_prev = rgb_status_cur;
+    }
 
     last.v = next.v;
 }

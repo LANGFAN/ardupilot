@@ -27,10 +27,11 @@ class ToshibaLED_PX4 : public ToshibaLED
 public:
     bool hw_init(void);
     bool hw_set_rgb(uint8_t r, uint8_t g, uint8_t b);
+    void rgb_status_update(VEHICLE_RGB_STATUS &rgb_status);
 private:
     int _rgbled_fd;
     void update_timer(void);
-
+    bool rgb_status_changed(void) const {return rgb_status_cur != rgb_status_prev;}
     // use a union so that updates can be of a single 32 bit value,
     // making it atomic on PX4
     union rgb_value {
@@ -43,4 +44,5 @@ private:
     };
     
     union rgb_value last, next;
+    VEHICLE_RGB_STATUS rgb_status_cur,rgb_status_prev;
 };

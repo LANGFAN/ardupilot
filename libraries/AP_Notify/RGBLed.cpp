@@ -36,7 +36,8 @@ RGBLed::RGBLed(uint8_t led_off, uint8_t led_bright, uint8_t led_medium, uint8_t 
     _led_off(led_off),
     _led_bright(led_bright),
     _led_medium(led_medium),
-    _led_dim(led_dim)
+    _led_dim(led_dim),
+    _rgb_status(RGB_WHITE)
 {
 
 }    
@@ -59,6 +60,7 @@ void RGBLed::_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
             _green_curr = green;
             _blue_curr = blue;
         }
+        rgb_status_update(_rgb_status);
     }
 }
 
@@ -131,6 +133,8 @@ void RGBLed::update_colours(void)
             _green_des = _led_off;
         }
 
+        _rgb_status = RGB_RED_BLUE_FLASH;
+
         // exit so no other status modify this pattern
         return;
     }
@@ -172,6 +176,9 @@ void RGBLed::update_colours(void)
                 _green_des = _led_off;
                 break;
         }
+
+        _rgb_status = RGB_RED_BLUE_GREEN_FLASH;
+
         // exit so no other status modify this pattern
         return;
     }
@@ -191,6 +198,7 @@ void RGBLed::update_colours(void)
                 _red_des = brightness;
                 _blue_des = _led_off;
                 _green_des = brightness;
+                _rgb_status = RGB_YELLOW;
                 break;
             case 5:
             case 6:
@@ -202,6 +210,7 @@ void RGBLed::update_colours(void)
                     _red_des = brightness;
                     _blue_des = _led_off;
                     _green_des = _led_off;
+                    _rgb_status = RGB_RED;
                 }else{
                     // all off for radio or battery failsafe
                     _red_des = _led_off;
@@ -221,16 +230,19 @@ void RGBLed::update_colours(void)
             _red_des = _led_off;
             _blue_des = _led_off;
             _green_des = brightness;
+            _rgb_status = RGB_GREEN;
         }else{
             // solid blue if armed with no GPS lock
             _red_des = _led_off;
             _blue_des = brightness;
             _green_des = _led_off;
+            _rgb_status = RGB_BLUE;
         }
         return;
     }else{
         // double flash yellow if failing pre-arm checks
         if (!AP_Notify::flags.pre_arm_check) {
+            _rgb_status = RGB_YELLOW_DOUBLE_FLASH;
             switch(step) {
                 case 0:
                 case 1:
@@ -258,6 +270,11 @@ void RGBLed::update_colours(void)
             // slow flashing green if disarmed with GPS 3d lock (and no DGPS)
             // flashing blue if disarmed with no gps lock or gps pre_arm checks have failed
             bool fast_green = AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS && AP_Notify::flags.pre_arm_gps_check;
+
+            if(fast_green){
+              _rgb_status = RGB_GREEN_FLASH_FAST;
+            }
+
             switch(step) {
                 case 0:
                     if (fast_green) {
@@ -285,10 +302,12 @@ void RGBLed::update_colours(void)
                         // flashing green if disarmed with GPS 3d lock
                         _blue_des = _led_off;
                         _green_des = brightness;
+                        _rgb_status = RGB_GREEN_FLASH_SLOW;
                     }else{
                         // flashing blue if disarmed with no gps lock
                         _blue_des = brightness;
                         _green_des = _led_off;
+                        _rgb_status = RGB_BLUE_FALSH_SLOW;
                     }
                     break;
                 case 5:
