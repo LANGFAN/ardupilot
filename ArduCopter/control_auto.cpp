@@ -170,6 +170,18 @@ void Copter::auto_takeoff_run()
         target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
     }
 
+    #if FRAME_CONFIG == HELI_FRAME
+        // helicopters stay in landed state until rotor speed runup has finished
+        if (motors->rotor_runup_complete()) {
+            set_land_complete(false);
+        } else {
+            // initialise wpnav targets
+            wp_nav->shift_wp_origin_to_current_pos();
+        }
+    #else
+        set_land_complete(false);
+    #endif
+
     // set motors to full range
     motors.set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
 
@@ -270,7 +282,7 @@ void Copter::auto_wp_run()
 // auto_spline_start - initialises waypoint controller to implement flying to a particular destination using the spline controller
 //  seg_end_type can be SEGMENT_END_STOP, SEGMENT_END_STRAIGHT or SEGMENT_END_SPLINE.  If Straight or Spline the next_destination should be provided
 void Copter::auto_spline_start(const Location_Class& destination, bool stopped_at_start,
-                               AC_WPNav::spline_segment_end_type seg_end_type, 
+                               AC_WPNav::spline_segment_end_type seg_end_type,
                                const Location_Class& next_destination)
 {
     auto_mode = Auto_Spline;
@@ -390,7 +402,7 @@ void Copter::auto_land_run()
 
     // set motors to full range
     motors.set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
-    
+
     land_run_horizontal_control();
     land_run_vertical_control();
 }
@@ -733,4 +745,3 @@ float Copter::get_auto_heading(void)
         return wp_nav.get_yaw();
     }
 }
-

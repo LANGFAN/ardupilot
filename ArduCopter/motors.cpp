@@ -130,6 +130,11 @@ bool Copter::init_arm_motors(bool arming_from_gcs)
     }
     in_arm_motors = true;
 
+    // return true if already armed
+    if (motors.armed()) {
+      return true;
+    }
+
     // run pre-arm-checks and display failures
     if (!all_arming_checks_passing(arming_from_gcs)) {
         AP_Notify::events.arming_failed = true;
@@ -266,7 +271,7 @@ void Copter::init_disarm_motors()
 void Copter::motors_output()
 {
 #if ADVANCED_FAILSAFE == ENABLED
-    // this is to allow the failsafe module to deliberately crash 
+    // this is to allow the failsafe module to deliberately crash
     // the vehicle. Only used in extreme circumstances to meet the
     // OBC rules
     if (g2.afs.should_crash_vehicle()) {
