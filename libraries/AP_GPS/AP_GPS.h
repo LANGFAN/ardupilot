@@ -118,7 +118,7 @@ public:
         float gps_heading;									///< body heading measured by differential gps, such as UN237
 		uint16_t hdop;                      ///< horizontal dilution of precision in cm
         uint16_t vdop;                      ///< vertical dilution of precision in cm
-        uint8_t num_sats;                   ///< Number of visible satellites        
+        uint8_t num_sats;                   ///< Number of visible satellites
         Vector3f velocity;                  ///< 3D velocitiy in m/s, in NED format
         float speed_accuracy;
         float horizontal_accuracy;
@@ -311,18 +311,18 @@ public:
 
     // convert GPS week and millis to unix epoch in ms
     static uint64_t time_epoch_convert(uint16_t gps_week, uint32_t gps_ms);
-    
+
     // return last fix time since the 1/1/1970 in microseconds
     uint64_t time_epoch_usec(uint8_t instance);
-    uint64_t time_epoch_usec(void) { 
-        return time_epoch_usec(primary_instance); 
+    uint64_t time_epoch_usec(void) {
+        return time_epoch_usec(primary_instance);
     }
 
 	// return true if the GPS supports vertical velocity values
-    bool have_vertical_velocity(uint8_t instance) const { 
-        return state[instance].have_vertical_velocity; 
+    bool have_vertical_velocity(uint8_t instance) const {
+        return state[instance].have_vertical_velocity;
     }
-    bool have_vertical_velocity(void) const { 
+    bool have_vertical_velocity(void) const {
         return have_vertical_velocity(primary_instance);
     }
 
@@ -334,17 +334,30 @@ public:
 			return have_gps_heading(primary_instance);
 		}
 
+		void get_gps_heading(float &heading, bool &heading_is_set) const;
+		// {
+		// 	if(!heading_is_set){
+		// 		if(have_gps_heading() && (status() >= AP_GPS::GPS_OK_FIX_3D_RTK)){
+		// 			heading = gps_heading();
+		// 			heading_is_set = true;
+		// 			GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"origin heading:%f",heading);
+		// 		} else {
+		// 			heading_is_set = false;
+		// 		}
+		// 	}
+		// }
+
     // the expected lag (in seconds) in the position and velocity readings from the gps
     float get_lag() const { return 0.2f; }
 
     // set position for HIL
-    void setHIL(uint8_t instance, GPS_Status status, uint64_t time_epoch_ms, 
+    void setHIL(uint8_t instance, GPS_Status status, uint64_t time_epoch_ms,
                 const Location &location, const Vector3f &velocity, uint8_t num_sats,
                 uint16_t hdop);
 
     // set accuracy for HIL
     void setHIL_Accuracy(uint8_t instance, float vdop, float hacc, float vacc, float sacc, bool _have_vertical_velocity, uint32_t sample_ms);
-    
+
     static const struct AP_Param::GroupInfo var_info[];
 
     // dataflash for logging, if available
@@ -441,7 +454,7 @@ private:
     void _broadcast_gps_type(const char *type, uint8_t instance, int8_t baud_index);
 
     /*
-      buffer for re-assembling RTCM data for GPS injection. 
+      buffer for re-assembling RTCM data for GPS injection.
       The 8 bit flags field in GPS_RTCM_DATA is interpreted as:
               1 bit for "is fragmented"
               2 bits for fragment number

@@ -54,9 +54,10 @@
 // FrSky telemetry support
 //
 
-#ifndef FRSKY_TELEM_ENABLED
-#define FRSKY_TELEM_ENABLED ENABLED
-#endif
+// #ifndef FRSKY_TELEM_ENABLED
+// #define FRSKY_TELEM_ENABLED DISABLED
+// // #define FRSKY_TELEM_ENABLED ENABLED
+// #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Optical flow sensor support
@@ -409,4 +410,3 @@
 #else
 # define HAVE_PX4_MIXER 0
 #endif
-
