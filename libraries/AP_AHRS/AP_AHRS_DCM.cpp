@@ -1002,7 +1002,7 @@ void AP_AHRS_DCM::set_home(const Location &loc)
 {
     _home = loc;
     _home.options = 0;
-    GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING, "set home: lat %d, lng %d", _home.lat,_home.lng);
+    // GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING, "set home: lat %d, lng %d", _home.lat,_home.lng);
 }
 
 /*

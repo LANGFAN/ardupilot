@@ -826,6 +826,10 @@ private:
     float flt_origin_heading;
     bool flt_origin_heading_is_set = false;
 
+    // TAKE OFF DISTANCE and FLAG
+    float tkoff_distance = 0.0f;
+    bool tkoff_distance_get = false;
+
     void adjust_nav_pitch_throttle(void);
     void update_load_factor(void);
     void send_heartbeat(mavlink_channel_t chan);

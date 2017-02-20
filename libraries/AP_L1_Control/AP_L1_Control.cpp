@@ -191,7 +191,7 @@ void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct
 
     // Calculate time varying control parameters
     // Calculate the L1 length required for specified period
-    // 0.3183099 = 1/1/pipi
+    // 0.3183099 = 1/pi
     _L1_dist = 0.3183099f * _L1_damping * _L1_period * groundSpeed;
 
     // Calculate the NE position of WP B relative to WP A

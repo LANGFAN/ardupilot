@@ -442,29 +442,6 @@ void Plane::update_GPS_50Hz(void)
             }
         }
     }
-
-    gps.get_gps_heading(ekf_origin_heading, ekf_origin_heading_is_set);
-
-    if(hal.util->get_soft_armed() && gps.status() >= AP_GPS::GPS_OK_FIX_3D_RTK){
-      if (fabsf(barometer.get_altitude()) > 2) {
-
-        if (home_is_set == HOME_SET_NOT_LOCKED) {
-            Location loc = gps.location();
-            Location origin;
-            // if an EKF origin is available then we leave home equal to
-            // the height of that origin. This ensures that our relative
-            // height calculations are using the same origin
-            if (ahrs.get_origin(origin)) {
-                loc.alt = origin.alt;
-            }
-            ahrs.set_home(loc);
-            Log_Write_Home_And_Origin();
-            GCS_MAVLINK::send_home_all(gps.location());
-        }
-
-        gps.get_gps_heading(flt_origin_heading, flt_origin_heading_is_set);
-      }
-    }
 }
 
 /*
@@ -516,6 +493,54 @@ void Plane::update_GPS_10Hz(void)
 
         // update wind estimate
         ahrs.estimate_wind();
+
+        gps.get_gps_heading(ekf_origin_heading, ekf_origin_heading_is_set);
+
+        // used for fixed wing auto land
+        // if(hal.util->get_soft_armed() && gps.status() >= AP_GPS::GPS_OK_FIX_3D_RTK){
+
+        // used for measuring taking off distance in meters, flight height in (2, 5)
+        // and relocating home point for auto landing
+        if(!tkoff_distance_get && hal.util->get_soft_armed()){
+
+          float height = 0;
+          // bool NavEKF2_core::getHAGL(float &HAGL)
+          // if (fabsf(barometer.get_altitude()) > 2)
+          if(ahrs.get_relative_position_D(height) && (fabsf(height) > 2) && (fabsf(height) < 5) ){
+
+            Location loc = gps.location();
+            Location origin;
+            // if an EKF origin is available then we leave home equal to
+            // the height of that origin. This ensures that our relative
+            // height calculations are using the same origin
+            if (ahrs.get_origin(origin)) {
+                loc.alt = origin.alt;
+            }
+
+            // relocating home point for auto landing.
+            // and circling home point
+            if ((g.rtl_autoland == 1) && (home_is_set == HOME_SET_NOT_LOCKED)){
+               ahrs.set_home(loc);
+               Log_Write_Home_And_Origin();
+               GCS_MAVLINK::send_home_all(gps.location());
+            }
+
+            // take off distance, unit:meter
+            tkoff_distance = fabsf(get_distance(loc, origin));
+
+            // ensure we have got valid taking-off distance
+            if(!(is_zero(tkoff_distance) || isinf(tkoff_distance) || isnan(tkoff_distance)) && (tkoff_distance < 200.0f)) {
+              tkoff_distance_get = true;
+              GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"tkoff distance:%.2fm",tkoff_distance);
+            }
+
+            // home_is_set = HOME_SET_AND_LOCKED; // not good, because we don't know when home_is_set state will be changed
+
+            gps.get_gps_heading(flt_origin_heading, flt_origin_heading_is_set);
+
+          }
+        }
+
     } else if (gps.status() < AP_GPS::GPS_OK_FIX_3D && ground_start_count != 0) {
         // lost 3D fix, start again
         ground_start_count = 5;

@@ -35,6 +35,7 @@ void Copter::set_home_to_current_location_inflight() {
         const struct Location &ekf_origin = inertial_nav.get_origin();
         // temp_loc.alt = ekf_origin.alt;
         set_home(ekf_origin);
+        GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING, "set home: lat %d, lng %d", ekf_origin.lat,ekf_origin.lng);
     }
 }
 
