@@ -515,18 +515,17 @@ void Plane::update_GPS_10Hz(void)
             // height calculations are using the same origin
             if (ahrs.get_origin(origin)) {
                 loc.alt = origin.alt;
-            }
+                // take off distance, unit:meter
+                tkoff_distance = fabsf(get_distance(loc, origin));
 
-            // relocating home point for auto landing.
-            // and circling home point
-            if ((g.rtl_autoland == 1) && (home_is_set == HOME_SET_NOT_LOCKED)){
-               ahrs.set_home(loc);
-               Log_Write_Home_And_Origin();
-               GCS_MAVLINK::send_home_all(gps.location());
+                // relocating home point for auto landing.
+                // and circling home point
+                if ((g.rtl_autoland != 0) && (home_is_set == HOME_SET_NOT_LOCKED)){
+                   ahrs.set_home(loc);
+                   Log_Write_Home_And_Origin();
+                   GCS_MAVLINK::send_home_all(gps.location());
+                }
             }
-
-            // take off distance, unit:meter
-            tkoff_distance = fabsf(get_distance(loc, origin));
 
             // ensure we have got valid taking-off distance
             if(!(is_zero(tkoff_distance) || isinf(tkoff_distance) || isnan(tkoff_distance)) && (tkoff_distance < 200.0f)) {
@@ -834,21 +833,43 @@ void Plane::update_navigation()
             reached_loiter_target() &&
             labs(altitude_error_cm) < 1000) {
             // we've reached the RTL point, see if we have a landing sequence
-            jump_to_landing_sequence();
+            // jump_to_landing_sequence();
+            if(allow_rtl_and_land()){
+              jump_to_rtl_and_land_without_cmd();
+              auto_state.checked_for_autoland = true;
+              // while landing, don't want to fall through to loiter mode
+              break;
+            }else{
+              jump_to_landing_sequence();
+              auto_state.checked_for_autoland = true;
+            }
 
             // prevent running the expensive jump_to_landing_sequence
             // on every loop
-            auto_state.checked_for_autoland = true;
+            // auto_state.checked_for_autoland = true;
         }
         else if (g.rtl_autoland == 2 &&
             !auto_state.checked_for_autoland) {
             // Go directly to the landing sequence
-            jump_to_landing_sequence();
+            // jump_to_landing_sequence();
+            if(allow_rtl_and_land()){
+              jump_to_rtl_and_land_without_cmd();
+              auto_state.checked_for_autoland = true;
+              // while landing, don't want to fall through to loiter mode
+              break;
+            }else{
+              jump_to_landing_sequence();
+              auto_state.checked_for_autoland = true;
+            }
 
             // prevent running the expensive jump_to_landing_sequence
             // on every loop
-            auto_state.checked_for_autoland = true;
+            // auto_state.checked_for_autoland = true;
+        } else if(allow_rtl_and_land() && auto_state.checked_for_autoland) {
+            update_rtl_and_land_without_cmd();
+            break;
         }
+
         radius = abs(g.rtl_radius);
         if (radius > 0) {
             loiter.direction = (g.rtl_radius < 0) ? -1 : 1;
@@ -1024,6 +1045,28 @@ void Plane::update_flight_stage(void)
             } else {
                 set_flight_stage(AP_SpdHgtControl::FLIGHT_NORMAL);
             }
+        } else if(control_mode==RTL && allow_rtl_and_land()){
+          if ((g.land_abort_throttle_enable && channel_throttle->get_control_in() >= 90) ||
+                  auto_state.commanded_go_around ||
+                  flight_stage == AP_SpdHgtControl::FLIGHT_LAND_ABORT){
+              // abort mode is sticky, it must complete while executing NAV_LAND
+              set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_ABORT);
+          } else if (auto_state.land_complete == true) {
+              set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_FINAL);
+          } else if (auto_state.land_pre_flare == true) {
+              set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_PREFLARE);
+          } else if (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_APPROACH) {
+              bool heading_lined_up = abs(nav_controller->bearing_error_cd()) < 1000 && !nav_controller->data_is_stale();
+              bool on_flight_line = abs(nav_controller->crosstrack_error() < 5) && !nav_controller->data_is_stale();
+              bool below_prev_WP = current_loc.alt < prev_WP_loc.alt;
+              if ((auto_state.wp_proportion >= 0 && heading_lined_up && on_flight_line) ||
+                  (auto_state.wp_proportion > 0.15f && heading_lined_up && below_prev_WP) ||
+                  (auto_state.wp_proportion > 0.5f)) {
+                  set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_APPROACH);
+              } else {
+                  set_flight_stage(AP_SpdHgtControl::FLIGHT_NORMAL);
+              }
+          }
         } else {
             // If not in AUTO then assume normal operation for normal TECS operation.
             // This prevents TECS from being stuck in the wrong stage if you switch from

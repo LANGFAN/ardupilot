@@ -48,7 +48,7 @@ bool Plane::verify_land()
        2) we are within LAND_FLARE_SEC of the landing point vertically
           by the calculated sink rate (if LAND_FLARE_SEC != 0)
        3) we have gone past the landing point and don't have
-          rangefinder data (to prevent us keeping throttle on 
+          rangefinder data (to prevent us keeping throttle on
           after landing if we've had positive baro drift)
     */
 #if RANGEFINDER_ENABLED == ENABLED
@@ -115,7 +115,7 @@ bool Plane::verify_land()
     struct Location land_WP_loc = next_WP_loc;
 	int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
     location_update(land_WP_loc,
-                    land_bearing_cd*0.01f, 
+                    land_bearing_cd*0.01f,
                     get_distance(prev_WP_loc, current_loc) + 200);
     nav_controller->update_waypoint(prev_WP_loc, land_WP_loc);
 
@@ -144,9 +144,9 @@ bool Plane::verify_land()
  */
 void Plane::disarm_if_autoland_complete()
 {
-    if (g.land_disarm_delay > 0 && 
-        auto_state.land_complete && 
-        !is_flying() && 
+    if (g.land_disarm_delay > 0 &&
+        auto_state.land_complete &&
+        !is_flying() &&
         arming.arming_required() != AP_Arming::NO &&
         arming.is_armed()) {
         /* we have auto disarm enabled. See if enough time has passed */
@@ -180,7 +180,7 @@ void Plane::adjust_landing_slope_for_rangefinder_bump(void)
 
     // re-calculate auto_state.land_slope with updated prev_WP_loc
     setup_landing_glide_slope();
-    
+
     if (rangefinder_state.correction >= 0) { // we're too low or object is below us
         // correction positive means we're too low so we should continue on with
         // the newly computed shallower slope instead of pitching/throttling up
@@ -249,8 +249,8 @@ void Plane::setup_landing_glide_slope(void)
         float aim_height = aparm.land_flare_sec * sink_rate;
         if (aim_height <= 0) {
             aim_height = g.land_flare_alt;
-        } 
-            
+        }
+
         // don't allow the aim height to be too far above LAND_FLARE_ALT
         if (g.land_flare_alt > 0 && aim_height > g.land_flare_alt*2) {
             aim_height = g.land_flare_alt*2;
@@ -270,7 +270,7 @@ void Plane::setup_landing_glide_slope(void)
         // distance to flare is based on ground speed, adjusted as we
         // get closer. This takes into account the wind
         float flare_distance = groundspeed * flare_time;
-        
+
         // don't allow the flare before half way along the final leg
         if (flare_distance > total_distance/2) {
             flare_distance = total_distance/2;
@@ -356,12 +356,12 @@ bool Plane::restart_landing_sequence()
     return success;
 }
 
-/* 
+/*
    find the nearest landing sequence starting point (DO_LAND_START) and
    switch to that mission item.  Returns false if no DO_LAND_START
    available.
  */
-bool Plane::jump_to_landing_sequence(void) 
+bool Plane::jump_to_landing_sequence(void)
 {
     uint16_t land_idx = mission.get_landing_sequence_start();
     if (land_idx != 0) {
@@ -377,7 +377,7 @@ bool Plane::jump_to_landing_sequence(void)
 
             gcs_send_text(MAV_SEVERITY_INFO, "Landing sequence start");
             return true;
-        }            
+        }
     }
 
     gcs_send_text(MAV_SEVERITY_WARNING, "Unable to start landing sequence");
@@ -407,4 +407,181 @@ float Plane::tecs_hgt_afe(void)
         hgt_afe = relative_altitude();
     }
     return hgt_afe;
+}
+
+void Plane::jump_to_rtl_and_land_without_cmd(void)
+{
+  auto_state.commanded_go_around = false;
+
+  
+  set_next_WP(ahrs.get_home());
+
+  // configure abort altitude and pitch
+  // if NAV_LAND has an abort altitude then use it, else use last takeoff, else use 50m
+  if (auto_state.takeoff_altitude_rel_cm <= 0) {
+      auto_state.takeoff_altitude_rel_cm = 3000;
+  }
+
+  if (auto_state.takeoff_pitch_cd <= 0) {
+      // If no takeoff command has ever been used, default to a conservative 10deg
+      auto_state.takeoff_pitch_cd = 1000;
+  }
+
+  auto_state.land_slope = 0;  // while first calc landing slope, we can print slope calculated info
+
+  #if RANGEFINDER_ENABLED == ENABLED
+    // zero rangefinder state, start to accumulate good samples now
+    memset(&rangefinder_state, 0, sizeof(rangefinder_state));
+  #endif
+}
+
+bool Plane::allow_rtl_and_land(void) const
+{
+  return (gps.status() >= AP_GPS::GPS_OK_FIX_3D_RTK && gps.have_gps_heading() && ekf_origin_heading_is_set && flt_origin_heading_is_set && tkoff_distance_get);
+}
+
+bool Plane::update_rtl_and_land_without_cmd(void)
+{
+  // while in RTL mode, we expect vehicle to land, (setting g.rtl_autoland != 0)
+  // however, we have not planed a trajectory, or don't want to be bothered by setting land point on map
+  // no waypoints, no land cmd, just in RTL and some other conditions, (reference to allow_rtl_and_land())
+  // vehicle can rtl and land automatically.
+
+  // souce from verify_land()
+
+  // when aborting a landing, mimic the verify_takeoff with steering hold. Once
+  // the altitude has been reached, restart the landing sequence
+  if (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_ABORT) {
+
+      throttle_suppressed = false;
+      auto_state.land_complete = false;
+      auto_state.land_pre_flare = false;
+      nav_controller->update_heading_hold(get_bearing_cd(prev_WP_loc, next_WP_loc));
+
+      // see if we have reached abort altitude
+      if (adjusted_relative_altitude_cm() > auto_state.takeoff_altitude_rel_cm) {
+          if(allow_rtl_and_land()){
+            jump_to_rtl_and_land_without_cmd();
+          }
+      }
+  }
+
+  float height = height_above_target();
+
+  // use rangefinder to correct if possible
+  height -= rangefinder_correction();
+
+  /* Set land_complete (which starts the flare) under 3 conditions:
+     1) we are within LAND_FLARE_ALT meters of the landing altitude
+     2) we are within LAND_FLARE_SEC of the landing point vertically
+        by the calculated sink rate (if LAND_FLARE_SEC != 0)
+     3) we have gone past the landing point and don't have
+        rangefinder data (to prevent us keeping throttle on
+        after landing if we've had positive baro drift)
+  */
+#if RANGEFINDER_ENABLED == ENABLED
+  bool rangefinder_in_range = rangefinder_state.in_range;
+#else
+  bool rangefinder_in_range = false;
+#endif
+
+  // flare check:
+  // 1) below flare alt/sec requires approach stage check because if sec/alt are set too
+  //    large, and we're on a hard turn to line up for approach, we'll prematurely flare by
+  //    skipping approach phase and the extreme roll limits will make it hard to line up with runway
+  // 2) passed land point and don't have an accurate AGL
+  // 3) probably crashed (ensures motor gets turned off)
+
+  bool on_approach_stage = (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH ||
+                            flight_stage == AP_SpdHgtControl::FLIGHT_LAND_PREFLARE);
+  bool below_flare_alt = (height <= g.land_flare_alt);
+  bool below_flare_sec = (aparm.land_flare_sec > 0 && height <= auto_state.sink_rate * aparm.land_flare_sec);
+  bool probably_crashed = (g.crash_detection_enable && fabsf(auto_state.sink_rate) < 0.2f && !is_flying());
+
+  if ((on_approach_stage && below_flare_alt) ||
+      (on_approach_stage && below_flare_sec && (auto_state.wp_proportion > 0.5)) ||
+      (!rangefinder_in_range && auto_state.wp_proportion >= 1) ||
+      probably_crashed) {
+
+      if (!auto_state.land_complete) {
+          auto_state.post_landing_stats = true;
+          if (!is_flying() && (millis()-auto_state.last_flying_ms) > 3000) {
+              gcs_send_text_fmt(MAV_SEVERITY_CRITICAL, "Flare crash detected: speed=%.1f", (double)gps.ground_speed());
+          } else {
+              gcs_send_text_fmt(MAV_SEVERITY_INFO, "Flare %.1fm sink=%.2f speed=%.1f dist=%.1f",
+                                (double)height, (double)auto_state.sink_rate,
+                                (double)gps.ground_speed(),
+                                (double)get_distance(current_loc, next_WP_loc));
+          }
+          auto_state.land_complete = true;
+          update_flight_stage();
+      }
+
+
+      if (gps.ground_speed() < 3) {
+          // reload any airspeed or groundspeed parameters that may have
+          // been set for landing. We don't do this till ground
+          // speed drops below 3.0 m/s as otherwise we will change
+          // target speeds too early.
+          g.airspeed_cruise_cm.load();
+          g.min_gndspeed_cm.load();
+          aparm.throttle_cruise.load();
+      }
+  } else if (!auto_state.land_complete && !auto_state.land_pre_flare && aparm.land_pre_flare_airspeed > 0) {
+      bool reached_pre_flare_alt = g.land_pre_flare_alt > 0 && (height <= g.land_pre_flare_alt);
+      bool reached_pre_flare_sec = g.land_pre_flare_sec > 0 && (height <= auto_state.sink_rate * g.land_pre_flare_sec);
+      if (reached_pre_flare_alt || reached_pre_flare_sec) {
+          auto_state.land_pre_flare = true;
+          update_flight_stage();
+      }
+  }
+
+  /*
+    when landing we keep the L1 navigation waypoint 200m ahead. This
+    prevents sudden turns if we overshoot the landing point
+   */
+  struct Location land_WP_loc = next_WP_loc;
+
+
+
+  // int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
+  int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
+
+  location_update(land_WP_loc,
+                  land_bearing_cd*0.01f,
+                  get_distance(prev_WP_loc, current_loc) + 200);
+
+  nav_controller->update_waypoint(prev_WP_loc, land_WP_loc);
+
+  // once landed and stationary, post some statistics
+  // this is done before disarm_if_autoland_complete() so that it happens on the next loop after the disarm
+  if (auto_state.post_landing_stats && !arming.is_armed()) {
+      auto_state.post_landing_stats = false;
+      gcs_send_text_fmt(MAV_SEVERITY_INFO, "Distance from LAND point=%.2fm", (double)get_distance(current_loc, next_WP_loc));
+  }
+
+  // check if we should auto-disarm after a confirmed landing
+  disarm_if_autoland_complete();
+
+}
+
+struct location Plane::calc_rtl_and_land_origin(float rtl_altitude) const
+{
+    struct location rtl_loc;
+    int32_t rtl_bearing;
+
+    // get rtl origin on extension line of EKF_origin and its bearing
+
+    rtl_loc = ahrs.get_home();
+
+    if(fabs((ekf_origin_heading - flt_origin_heading) < 3) ){
+      rtl_bearing = (ekf_origin_heading + flt_origin_heading) / 2.0f;
+    } else {
+      rtl_bearing = ekf_origin_heading;
+    }
+
+    location_update(rtl_loc, rtl_bearing, rtl_altitude * 10);   // extension line default value: 1000m long extension
+
+    rtl_loc.flags.relative_alt = false; // read_alt_to_hold returns an absolute altitude
+    return rtl_loc;
 }
