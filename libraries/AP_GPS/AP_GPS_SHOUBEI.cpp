@@ -59,22 +59,18 @@ extern const AP_HAL::HAL& hal;
 // the autodetection process.
 //
 
-/*
- *  "$JASC,GPGGA,5\r\n"\
-"$JASC,GPRMC,5\r\n"\
-"$JASC,GPVTG,5\r\n"\
-*/
-#define UniStrong_INIT_MSG\
-	"$JOFF\r\n"\
+#define UniStrong_INIT_MSG \
 	"$JDIFF,RTK\r\n"\
     "$JAGE,2700\r\n"\
 	"$JASC,GPGGA,10\r\n"\
 	"$JASC,GPVTG,10\r\n"\
+    "$JATT,MOVEBAS,YES\r\n"\
+    "$JATT,GYROAID,YES\r\n"\
+    "$JATT, TILTAID,YES\r\n"\
 	"$JASC,GPHPR,15\r\n"\
 	"$JBIN,1,15\r\n"\
 	"$JBIN,2,5\r\n"\
 	"$JSAVE\r\n"
-
 
 
 const char AP_GPS_SHOUBEI::_initialisation_blob[] = UniStrong_INIT_MSG;
