@@ -964,9 +964,9 @@ private:
 
     // rtl and auto land without informing to mission class,no wp needed
     void jump_to_rtl_and_land_without_cmd(void); // refer to do_land()
-    bool update_rtl_and_land_without_cmd(void);  // refer to verify_land()
+    void update_rtl_and_land_without_cmd(void);  // refer to verify_land()
     bool allow_rtl_and_land(void) const;        // check if everything is OK for auto landing
-    struct location calc_rtl_and_land_origin(float rtl_altigude) const;  // calc landing origin
+    struct Location calc_rtl_and_land_origin(float rtl_altigude);  // calc landing origin
 
     float tecs_hgt_afe(void);
     void set_nav_controller(void);

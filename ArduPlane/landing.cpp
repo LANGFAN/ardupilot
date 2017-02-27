@@ -413,7 +413,7 @@ void Plane::jump_to_rtl_and_land_without_cmd(void)
 {
   auto_state.commanded_go_around = false;
 
-  
+
   set_next_WP(ahrs.get_home());
 
   // configure abort altitude and pitch
@@ -440,7 +440,7 @@ bool Plane::allow_rtl_and_land(void) const
   return (gps.status() >= AP_GPS::GPS_OK_FIX_3D_RTK && gps.have_gps_heading() && ekf_origin_heading_is_set && flt_origin_heading_is_set && tkoff_distance_get);
 }
 
-bool Plane::update_rtl_and_land_without_cmd(void)
+void Plane::update_rtl_and_land_without_cmd(void)
 {
   // while in RTL mode, we expect vehicle to land, (setting g.rtl_autoland != 0)
   // however, we have not planed a trajectory, or don't want to be bothered by setting land point on map
@@ -565,9 +565,9 @@ bool Plane::update_rtl_and_land_without_cmd(void)
 
 }
 
-struct location Plane::calc_rtl_and_land_origin(float rtl_altitude) const
+struct Location Plane::calc_rtl_and_land_origin(float rtl_altitude)
 {
-    struct location rtl_loc;
+    struct Location rtl_loc;
     int32_t rtl_bearing;
 
     // get rtl origin on extension line of EKF_origin and its bearing

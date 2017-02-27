@@ -42,7 +42,7 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
     SCHED_TASK(read_control_switch,     7,    100),
     SCHED_TASK(gcs_retry_deferred,     50,    500),
     SCHED_TASK(update_GPS_50Hz,        50,    300),
-    SCHED_TASK(update_GPS_10Hz,        10,    400),
+    SCHED_TASK(,        10,    400),
     SCHED_TASK(navigate,               10,    150),
     SCHED_TASK(update_compass,         10,    200),
     SCHED_TASK(read_airspeed,          10,    100),
@@ -447,7 +447,7 @@ void Plane::update_GPS_50Hz(void)
 /*
   read update GPS position - 10Hz update
  */
-void Plane::update_GPS_10Hz(void)
+void Plane::(void)
 {
     static uint32_t last_gps_msg_ms;
     if (gps.last_message_time_ms() != last_gps_msg_ms && gps.status() >= AP_GPS::GPS_OK_FIX_3D) {
