@@ -827,8 +827,14 @@ private:
     bool flt_origin_heading_is_set = false;
 
     // TAKE OFF DISTANCE and FLAG
+    uint32_t flt_origin_time_ms = 0;
     float tkoff_distance = 0.0f;
     bool tkoff_distance_get = false;
+
+    // landing distance and flag
+    uint32_t landing_ms = 0;
+    float land_distance = 0.0f;
+    bool land_distance_get = false;
 
     void adjust_nav_pitch_throttle(void);
     void update_load_factor(void);
