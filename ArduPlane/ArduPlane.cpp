@@ -545,20 +545,27 @@ void Plane::update_GPS_10Hz(void)
            // after flight 2 minutes, vehicle should have flight 7 meters high
            // or else it's a disaster
            if(ahrs.get_relative_position_D(height) && (fabsf(height) > 5.0f) && (fabsf(height) < 7.0f) ){
-             Location land_flare_loc = gps.location();
+
              landing_ms = millis();
-             Location origin;
-             if(ahrs.get_origin(origin)){
-               land_distance = fabsf(get_distance(land_flare_loc, origin));
-               land_distance_get = true;
-               GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"land distance:%.2fm",land_distance);
-             }
+             land_distance_get = true;
            }
          }
 
          if(!is_flying() && land_distance_get){
+           // calc landing time and flight time
            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"land time:%dms",last_gps_msg_ms - landing_ms);
-           GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"flight time:%dms",started_flying_ms - landing_ms);
+           GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"flight time:%dms",landing_ms - started_flying_ms);
+
+           // calc landing distance
+           Location land_flare_loc = gps.location();
+
+           Location origin;
+           if(ahrs.get_origin(origin)){
+             land_distance = fabsf(get_distance(land_flare_loc, origin));
+
+             GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"land distance:%.2fm",land_distance);
+           }
+
            land_distance_get = false; // prevent going here again
          }
     } else if (gps.status() < AP_GPS::GPS_OK_FIX_3D && ground_start_count != 0) {
