@@ -237,7 +237,7 @@ public:
         return ground_course_cd(primary_instance);
     }
 
-		// vehicle heading measured by diff gps in degrees
+		// vehicle heading measured by diff gps in torad(degrees)
 		float gps_heading(uint8_t instance) const {
 				return state[instance].gps_heading;
 		}
@@ -333,19 +333,6 @@ public:
 		bool have_gps_heading(void) const {
 			return have_gps_heading(primary_instance);
 		}
-
-		void get_gps_heading(float &heading, bool &heading_is_set) const;
-		// {
-		// 	if(!heading_is_set){
-		// 		if(have_gps_heading() && (status() >= AP_GPS::GPS_OK_FIX_3D_RTK)){
-		// 			heading = gps_heading();
-		// 			heading_is_set = true;
-		// 			GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"origin heading:%f",heading);
-		// 		} else {
-		// 			heading_is_set = false;
-		// 		}
-		// 	}
-		// }
 
     // the expected lag (in seconds) in the position and velocity readings from the gps
     float get_lag() const { return 0.2f; }

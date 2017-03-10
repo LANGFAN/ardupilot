@@ -830,11 +830,17 @@ private:
     uint32_t flt_origin_time_ms = 0;
     float tkoff_distance = 0.0f;
     bool tkoff_distance_get = false;
+    float tkoff_gdspd = 0.0f;
+    float tkoff_voltage = 0.0f;            // voltage in volts
+    float tkoff_current_amps = 0.0f;       // current in amperes
 
     // landing distance and flag
     uint32_t landing_ms = 0;
+    Location land_flare_loc {};
     float land_distance = 0.0f;
     bool land_distance_get = false;
+
+    void get_vehicle_heading(float &heading, bool &heading_is_set);
 
     void adjust_nav_pitch_throttle(void);
     void update_load_factor(void);

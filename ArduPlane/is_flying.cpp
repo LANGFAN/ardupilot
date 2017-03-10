@@ -229,7 +229,7 @@ void Plane::crash_detection_update(void)
             // we need a totally new method for this
             crashed = false;
             break;
-            
+
         case AP_SpdHgtControl::FLIGHT_LAND_APPROACH:
             if (been_auto_flying) {
                 crashed = true;
@@ -313,5 +313,3 @@ bool Plane::in_preLaunch_flight_stage(void) {
             flight_stage == AP_SpdHgtControl::FLIGHT_NORMAL &&
             mission.get_current_nav_cmd().id == MAV_CMD_NAV_TAKEOFF);
 }
-
-

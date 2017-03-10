@@ -52,6 +52,9 @@ public:
         k_param_g2,
         k_param_avoidance_adsb,
 
+        // rtl direction
+        k_param_rtl_dir,
+        k_param_rtl_dist,
         // Misc
         //
         k_param_auto_trim      = 10,
@@ -94,7 +97,7 @@ public:
         k_param_skip_gyro_cal, // unused
         k_param_auto_fbw_steer,
         k_param_waypoint_max_radius,
-        k_param_ground_steer_alt,        
+        k_param_ground_steer_alt,
         k_param_ground_steer_dps,
         k_param_rally_limit_km_old, //unused anymore -- just holding this index
         k_param_hil_err_limit,
@@ -353,6 +356,8 @@ public:
     AP_Int16 format_version;
     AP_Int8 software_type;
 
+    AP_Int8 rtl_dir;
+    AP_Int16 rtl_dist;
     // Telemetry control
     //
     AP_Int16 sysid_this_mav;
@@ -496,7 +501,7 @@ public:
     AP_Int8 flap_2_percent;
     AP_Int8 flap_2_speed;
     AP_Int8 land_flap_percent;
-    AP_Int8 takeoff_flap_percent;  
+    AP_Int8 takeoff_flap_percent;
     AP_Int8 inverted_flight_ch;             // 0=disabled, 1-8 is channel for inverted flight trigger
     AP_Int8 stick_mixing;
     AP_Float takeoff_throttle_min_speed;

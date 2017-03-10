@@ -48,6 +48,20 @@ const AP_Param::Info Plane::var_info[] = {
     GSCALAR(cli_enabled,            "CLI_ENABLED",    0),
 #endif
 
+    // @Param: RTL_DIRECTION
+    // @DisplayName: RTL direction
+    // @Description: Determine to auto land from which direction.
+    // @Values: 1:take off direction,-1:reverse direction
+    // @User: Standard
+    GSCALAR(rtl_dir,            "RTL_DIRECTION",    -1),
+
+    // @Param: RTL_DISTANCE
+    // @DisplayName: RTL direction
+    // @Description: Determine how far vehicle begin to land
+    // @Values: 0~1000m
+    // @User: Standard
+    GSCALAR(rtl_dist,            "RTL_DISTANCE",    100),
+
     // @Group: SERIAL
     // @Path: ../libraries/AP_SerialManager/AP_SerialManager.cpp
     GOBJECT(serial_manager, "SERIAL",   AP_SerialManager),
@@ -61,7 +75,7 @@ const AP_Param::Info Plane::var_info[] = {
     ASCALAR(autotune_level, "AUTOTUNE_LEVEL",  6),
 
     // @Param: TELEM_DELAY
-    // @DisplayName: Telemetry startup delay 
+    // @DisplayName: Telemetry startup delay
     // @Description: The amount of time (in seconds) to delay radio telemetry to prevent an Xbee bricking on power up
     // @User: Standard
     // @Units: seconds
@@ -94,7 +108,7 @@ const AP_Param::Info Plane::var_info[] = {
     GSCALAR(kff_throttle_to_pitch,  "KFF_THR2PTCH",   0),
 
     // @Param: STAB_PITCH_DOWN
-    // @DisplayName: Low throttle pitch down trim 
+    // @DisplayName: Low throttle pitch down trim
     // @Description: This controls the amount of down pitch to add in FBWA and AUTOTUNE modes when at low throttle. No down trim is added when throttle is above TRIM_THROTTLE. Below TRIM_THROTTLE downtrim is added in proportion to the amount the throttle is below TRIM_THROTTLE. At zero throttle the full downpitch specified in this parameter is added. This parameter is meant to help keep airspeed up when flying in FBWA mode with low throttle, such as when on a landing approach, without relying on an airspeed sensor. A value of 2 degrees is good for many planes, although a higher value may be needed for high drag aircraft.
     // @Range: 0 15
     // @Increment: 0.1
@@ -265,7 +279,7 @@ const AP_Param::Info Plane::var_info[] = {
 
     // @Param: LAND_FLARE_ALT
     // @DisplayName: Landing flare altitude
-    // @Description: Altitude in autoland at which to lock heading and flare to the LAND_PITCH_CD pitch. Note that this option is secondary to LAND_FLARE_SEC. For a good landing it preferable that the flare is triggered by LAND_FLARE_SEC. 
+    // @Description: Altitude in autoland at which to lock heading and flare to the LAND_PITCH_CD pitch. Note that this option is secondary to LAND_FLARE_SEC. For a good landing it preferable that the flare is triggered by LAND_FLARE_SEC.
     // @Units: meters
     // @Increment: 0.1
     // @User: Advanced
@@ -404,7 +418,7 @@ const AP_Param::Info Plane::var_info[] = {
     // @Increment: 1
     // @User: Standard
     GSCALAR(rtl_radius,             "RTL_RADIUS",  0),
-    
+
 #if GEOFENCE_ENABLED == ENABLED
     // @Param: FENCE_ACTION
     // @DisplayName: Action on geofence breach
@@ -461,10 +475,10 @@ const AP_Param::Info Plane::var_info[] = {
 
     // @Param: FENCE_RET_RALLY
     // @DisplayName: Fence Return to Rally
-    // @Description: When set to 1: on fence breach the plane will return to the nearest rally point rather than the fence return point.  If no rally points have been defined the plane will return to the home point.  
+    // @Description: When set to 1: on fence breach the plane will return to the nearest rally point rather than the fence return point.  If no rally points have been defined the plane will return to the home point.
     // @Values: 0:FenceReturnPoint,1:NearestRallyPoint
     // @User: Standard
-    GSCALAR(fence_ret_rally,        "FENCE_RET_RALLY",  0),     
+    GSCALAR(fence_ret_rally,        "FENCE_RET_RALLY",  0),
 #endif
 
     // @Param: STALL_PREVENTION
@@ -635,7 +649,7 @@ const AP_Param::Info Plane::var_info[] = {
 
     // @Param: FS_LONG_ACTN
     // @DisplayName: Long failsafe action
-    // @Description: The action to take on a long (FS_LONG_TIMEOUT seconds) failsafe event. If the aircraft was in a stabilization or manual mode when failsafe started and a long failsafe occurs then it will change to RTL mode if FS_LONG_ACTN is 0 or 1, and will change to FBWA if FS_LONG_ACTN is set to 2. If the aircraft was in an auto mode (such as AUTO or GUIDED) when the failsafe started then it will continue in the auto mode if FS_LONG_ACTN is set to 0, will change to RTL mode if FS_LONG_ACTN is set to 1 and will change to FBWA mode if FS_LONG_ACTN is set to 2. If FS_LONG_ACTION is set to 3, the parachute will be deployed (make sure the chute is configured and enabled). 
+    // @Description: The action to take on a long (FS_LONG_TIMEOUT seconds) failsafe event. If the aircraft was in a stabilization or manual mode when failsafe started and a long failsafe occurs then it will change to RTL mode if FS_LONG_ACTN is 0 or 1, and will change to FBWA if FS_LONG_ACTN is set to 2. If the aircraft was in an auto mode (such as AUTO or GUIDED) when the failsafe started then it will continue in the auto mode if FS_LONG_ACTN is set to 0, will change to RTL mode if FS_LONG_ACTN is set to 1 and will change to FBWA mode if FS_LONG_ACTN is set to 2. If FS_LONG_ACTION is set to 3, the parachute will be deployed (make sure the chute is configured and enabled).
     // @Values: 0:Continue,1:ReturnToLaunch,2:Glide,3:Deploy Parachute
     // @User: Standard
     GSCALAR(long_fs_action,         "FS_LONG_ACTN",   LONG_FAILSAFE_ACTION),
@@ -1055,7 +1069,7 @@ const AP_Param::Info Plane::var_info[] = {
 
     // @Param: RTL_AUTOLAND
     // @DisplayName: RTL auto land
-    // @Description: Automatically begin landing sequence after arriving at RTL location. This requires the addition of a DO_LAND_START mission item, which acts as a marker for the start of a landing sequence. The closest landing sequence will be chosen to the current location. 
+    // @Description: Automatically begin landing sequence after arriving at RTL location. This requires the addition of a DO_LAND_START mission item, which acts as a marker for the start of a landing sequence. The closest landing sequence will be chosen to the current location.
     // @Values: 0:Disable,1:Enable - go HOME then land,2:Enable - go directly to landing sequence
     // @User: Standard
     GSCALAR(rtl_autoland,         "RTL_AUTOLAND",   0),
@@ -1065,7 +1079,7 @@ const AP_Param::Info Plane::var_info[] = {
     // @Description: Automatically set roll/pitch trim from Tx at ground start. This makes the assumption that the RC transmitter has not been altered since trims were last captured.
     // @Values: 0:Disable,1:Enable
     // @User: Standard
-    GSCALAR(trim_rc_at_start,     "TRIM_RC_AT_START",    0), 
+    GSCALAR(trim_rc_at_start,     "TRIM_RC_AT_START",    0),
 
     // @Param: CRASH_ACC_THRESH
     // @DisplayName: Crash Deceleration Threshold
@@ -1154,13 +1168,13 @@ const AP_Param::Info Plane::var_info[] = {
     // @Group: TUNE_
     // @Path: tuning.cpp,../libraries/AP_Tuning/AP_Tuning.cpp
     GOBJECT(tuning,           "TUNE_", AP_Tuning_Plane),
-    
+
     // @Group: Q_A_
     // @Path: ../libraries/AC_AttitudeControl/AC_AttitudeControl_Multi.cpp
     { AP_PARAM_GROUP, "Q_A_", Parameters::k_param_q_attitude_control,
       (const void *)&plane.quadplane.attitude_control,
       {group_info : AC_AttitudeControl_Multi::var_info}, AP_PARAM_FLAG_POINTER },
-    
+
     // RC channel
     //-----------
     // @Group: RC1_
@@ -1226,7 +1240,7 @@ const AP_Param::Info Plane::var_info[] = {
     // @Group: RC16_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
     GGROUP(rc_16,                    "RC16_", RC_Channel_aux),
-    
+
     // @Group: RLL2SRV_
     // @Path: ../libraries/APM_Control/AP_RollController.cpp
 	GOBJECT(rollController,         "RLL2SRV_",   AP_RollController),
@@ -1348,7 +1362,7 @@ const AP_Param::Info Plane::var_info[] = {
     // @Group: RPM
     // @Path: ../libraries/AP_RPM/AP_RPM.cpp
     GOBJECT(rpm_sensor, "RPM", AP_RPM),
-    
+
     // @Group: RSSI_
     // @Path: ../libraries/AP_RSSI/AP_RSSI.cpp
     GOBJECT(rssi, "RSSI_",  AP_RSSI),
@@ -1357,10 +1371,10 @@ const AP_Param::Info Plane::var_info[] = {
     // @Path: ../libraries/AP_Notify/AP_Notify.cpp
     GOBJECT(notify, "NTF_",  AP_Notify),
 
-    // @Group: 
+    // @Group:
     // @Path: Parameters.cpp
     GOBJECT(g2, "",  ParametersG2),
-    
+
     AP_VAREND
 };
 
@@ -1387,7 +1401,7 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Values: 0:NotEnforced,1:Enforced
     // @User: Advanced
     AP_GROUPINFO("SYSID_ENFORCE", 4, ParametersG2, sysid_enforce, 0),
-    
+
     AP_GROUPEND
 };
 
@@ -1449,8 +1463,8 @@ const AP_Param::ConversionInfo conversion_table[] = {
     { Parameters::k_param_quadplane,         14,      AP_PARAM_FLOAT, "Q_VXY_P" },
     { Parameters::k_param_quadplane,         15,      AP_PARAM_FLOAT, "Q_VZ_P" },
     { Parameters::k_param_quadplane,         16,      AP_PARAM_FLOAT, "Q_AZ_P" },
-    
-    
+
+
 };
 
 void Plane::load_parameters(void)
@@ -1480,6 +1494,6 @@ void Plane::load_parameters(void)
         // quadplanes needs a higher loop rate
         AP_Param::set_default_by_name("SCHED_LOOP_RATE", 300);
     }
-    
+
     cliSerial->printf("load_all took %uus\n", (unsigned)(micros() - before));
 }

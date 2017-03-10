@@ -824,15 +824,3 @@ void AP_GPS::inject_data_all(const uint8_t *data, uint16_t len)
     }
 
 }
-
-void AP_GPS::get_gps_heading(float &heading, bool &heading_is_set) const {
-  if(!heading_is_set){
-    if(have_gps_heading() && (status() >= AP_GPS::GPS_OK_FIX_3D_RTK)){
-      heading = gps_heading();
-      heading_is_set = true;
-      GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"origin heading:%f",heading);
-    } else {
-      heading_is_set = false;
-    }
-  }
-}

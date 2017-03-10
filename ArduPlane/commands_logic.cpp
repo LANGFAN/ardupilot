@@ -335,6 +335,7 @@ void Plane::do_RTL(int32_t rtl_altitude)
     auto_state.next_wp_no_crosstrack = true;
     auto_state.no_crosstrack = true;
     prev_WP_loc = current_loc;
+    // if(allow_rtl_and_land() && g.rtl_autoland != 0) {
     if(allow_rtl_and_land()) {
       next_WP_loc = calc_rtl_and_land_origin(rtl_altitude);
     } else {
@@ -707,6 +708,15 @@ bool Plane::verify_loiter_to_alt()
 
 bool Plane::verify_RTL()
 {
+    // if(allow_rtl_and_land() && auto_state.checked_for_autoland) {
+    //     if(auto_state.land_complete) {
+    //       gcs_send_text(MAV_SEVERITY_INFO,"Reached HOME");
+    //       return true;
+    //     } else {
+    //       return false;
+    //     }
+    // }
+
     if (g.rtl_radius < 0) {
         loiter.direction = -1;
     } else {

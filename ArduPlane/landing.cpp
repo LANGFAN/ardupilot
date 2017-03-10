@@ -278,7 +278,8 @@ void Plane::setup_landing_glide_slope(void)
 
         // project a point 500 meters past the landing point, passing
         // through the landing point
-        const float land_projection = 500;
+        // const float land_projection = 500;
+        const float land_projection = 150;
         int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
 
         // now calculate our aim point, which is before the landing
@@ -411,10 +412,20 @@ float Plane::tecs_hgt_afe(void)
 
 void Plane::jump_to_rtl_and_land_without_cmd(void)
 {
-  auto_state.commanded_go_around = false;
+    auto_state.commanded_go_around = false;
 
+    Location origin;
 
-  set_next_WP(ahrs.get_home());
+    if(1 == g.rtl_dir){
+      origin = ahrs.get_home();
+    } else{
+      ahrs.get_origin(origin);
+    }
+
+  set_next_WP(origin);
+
+  gcs_send_text_fmt(MAV_SEVERITY_WARNING, "land point=%f,%f,%f",
+                    (double)origin.lat,(double)origin.lng,(double)(origin.alt - home.alt));
 
   // configure abort altitude and pitch
   // if NAV_LAND has an abort altitude then use it, else use last takeoff, else use 50m
@@ -542,8 +553,6 @@ void Plane::update_rtl_and_land_without_cmd(void)
    */
   struct Location land_WP_loc = next_WP_loc;
 
-
-
   // int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
   int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
 
@@ -571,8 +580,14 @@ struct Location Plane::calc_rtl_and_land_origin(float rtl_altitude)
     int32_t rtl_bearing;
 
     // get rtl origin on extension line of EKF_origin and its bearing
+    if(1 == g.rtl_dir){
+      rtl_loc = ahrs.get_home();
+    } else {
+      ahrs.get_origin(rtl_loc);
+    }
 
-    rtl_loc = ahrs.get_home();
+
+    rtl_loc.alt = rtl_altitude; // 10000 cm
 
     if(fabs((ekf_origin_heading - flt_origin_heading) < 3) ){
       rtl_bearing = (ekf_origin_heading + flt_origin_heading) / 2.0f;
@@ -580,8 +595,10 @@ struct Location Plane::calc_rtl_and_land_origin(float rtl_altitude)
       rtl_bearing = ekf_origin_heading;
     }
 
-    location_update(rtl_loc, rtl_bearing, rtl_altitude * 10);   // extension line default value: 1000m long extension
+    // location_update(rtl_loc, 180+rtl_bearing, rtl_loc.alt / 10);   // extension line default value: 5000cm / 10 = 500m long extension
+    location_update(rtl_loc, rtl_bearing, g.rtl_dir * g.rtl_dist);   // extension line default value: 300m long extension, inverse tkoff bearing
 
-    rtl_loc.flags.relative_alt = false; // read_alt_to_hold returns an absolute altitude
+    rtl_loc.flags.relative_alt = false;
+
     return rtl_loc;
 }

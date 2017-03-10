@@ -442,6 +442,8 @@ void Plane::update_GPS_50Hz(void)
             }
         }
     }
+
+    get_vehicle_heading(ekf_origin_heading, ekf_origin_heading_is_set);
 }
 
 /*
@@ -494,8 +496,6 @@ void Plane::update_GPS_10Hz(void)
         // update wind estimate
         ahrs.estimate_wind();
 
-        gps.get_gps_heading(ekf_origin_heading, ekf_origin_heading_is_set);
-
         // used for fixed wing auto land
         // if(hal.util->get_soft_armed() && gps.status() >= AP_GPS::GPS_OK_FIX_3D_RTK)
 
@@ -522,6 +522,8 @@ void Plane::update_GPS_10Hz(void)
                     ahrs.set_home(loc);
                     Log_Write_Home_And_Origin();
                     GCS_MAVLINK::send_home_all(gps.location());
+                    gcs_send_text_fmt(MAV_SEVERITY_WARNING, "Home changed to:%d,%d",
+                                     home.lat,home.lng);
                  }
 
                  // take off distance, unit:meter
@@ -531,11 +533,21 @@ void Plane::update_GPS_10Hz(void)
                  if(!(is_zero(tkoff_distance) || isinf(tkoff_distance) || isnan(tkoff_distance)) && (tkoff_distance < 300.0f)) {
                    tkoff_distance_get = true;
                    flt_origin_time_ms = millis();
-                   GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"tkoff distance:%.2fm",tkoff_distance);
-                   GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"tkoff time:%dms",flt_origin_time_ms - last_gps_msg_ms);
                  }
               }
-              gps.get_gps_heading(flt_origin_heading, flt_origin_heading_is_set);
+
+              tkoff_gdspd = ahrs.groundspeed();
+
+              if (battery.has_current() && battery.healthy()) {
+                  tkoff_voltage = battery.voltage();
+                  tkoff_current_amps = battery.current_amps();
+              }
+
+              get_vehicle_heading(flt_origin_heading, flt_origin_heading_is_set);
+              // if(flt_origin_heading_is_set){
+              //   gcs_send_text_fmt(MAV_SEVERITY_WARNING, "tkoff bearing:%f",
+              //                    (double)flt_origin_heading);
+              // }
            }
          } else if(tkoff_distance_get && is_flying() && (last_gps_msg_ms - flt_origin_time_ms) > 2000UL  && !land_distance_get){
          // else if(tkoff_distance_get && is_flying() && !land_distance_get)
@@ -545,26 +557,53 @@ void Plane::update_GPS_10Hz(void)
            // after flight 2 minutes, vehicle should have flight 7 meters high
            // or else it's a disaster
            if(ahrs.get_relative_position_D(height) && (fabsf(height) > 5.0f) && (fabsf(height) < 7.0f) ){
-
+             // calc landing distance
+             land_flare_loc = gps.location();
              landing_ms = millis();
              land_distance_get = true;
            }
          }
 
          if(!is_flying() && land_distance_get){
-           // calc landing time and flight time
-           GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"land time:%dms",last_gps_msg_ms - landing_ms);
-           GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"flight time:%dms",landing_ms - started_flying_ms);
+           // after landing
+           // print tkoff distance
+          //  GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"tkoff distance:%dm",int(tkoff_distance));
+           gcs_send_text_fmt(MAV_SEVERITY_WARNING, "tkoff dist=%.2fm time=%ds spd=%.2fm/s",
+                            (double)tkoff_distance,
+                            (flt_origin_time_ms - started_flying_ms)/1000,
+                            (double)tkoff_gdspd);
 
-           // calc landing distance
-           Location land_flare_loc = gps.location();
 
-           Location origin;
-           if(ahrs.get_origin(origin)){
-             land_distance = fabsf(get_distance(land_flare_loc, origin));
+           // print tkoff time
+          //  GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"tkoff time:%dms",flt_origin_time_ms - started_flying_ms);
 
-             GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"land distance:%.2fm",land_distance);
+           // print tkoff ground speed
+          //  GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"tkoff speed:%dm/s",tkoff_gdspd);
+
+           if (battery.healthy()){
+            //  GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"tkoff Vol-Amp:%dV-%dA",);
+             gcs_send_text_fmt(MAV_SEVERITY_WARNING, "tkoff vol=%.2fm amp=%.2fs cap_pct=%d",
+                              (double)tkoff_voltage,
+                              (double)tkoff_current_amps,
+                              battery.capacity_remaining_pct());
            }
+           land_distance = fabsf(get_distance(land_flare_loc, gps.location()));
+
+          gcs_send_text_fmt(MAV_SEVERITY_WARNING, "land dist=%.2fm time=%ds",
+                           (double)land_distance,
+                           (last_gps_msg_ms - landing_ms)/1000);
+
+           gcs_send_text_fmt(MAV_SEVERITY_WARNING, "flt time=%ds",
+                            (last_gps_msg_ms - started_flying_ms)/1000);
+
+
+          //  GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"land distance:%dm",int(land_distance));
+
+           // print landing time
+          //  GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"land time:%dms",last_gps_msg_ms - landing_ms);
+
+           //  print flight time
+          //  GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"flight time:%dms",last_gps_msg_ms - started_flying_ms);
 
            land_distance_get = false; // prevent going here again
          }
@@ -575,6 +614,20 @@ void Plane::update_GPS_10Hz(void)
 
     calc_gndspeed_undershoot();
 }
+
+void Plane::get_vehicle_heading(float &heading, bool &heading_is_set) {
+  if(!heading_is_set){
+    if(gps.have_gps_heading() && (gps.status() >= AP_GPS::GPS_OK_FIX_3D_RTK)){
+      heading = ToDeg(gps.gps_heading());
+      heading_is_set = true;
+      gcs_send_text_fmt(MAV_SEVERITY_WARNING, "origin bearing:%2f",
+                       (double)heading);
+    } else {
+      heading_is_set = false;
+    }
+  }
+}
+
 
 /*
   main handling for AUTO mode
@@ -863,37 +916,41 @@ void Plane::update_navigation()
             // we've reached the RTL point, see if we have a landing sequence
             // jump_to_landing_sequence();
             if(allow_rtl_and_land()){
-              jump_to_rtl_and_land_without_cmd();
-              auto_state.checked_for_autoland = true;
-              // while landing, don't want to fall through to loiter mode
-              break;
-            }else{
-              jump_to_landing_sequence();
-              auto_state.checked_for_autoland = true;
+              if(abs(next_WP_loc.alt - home.alt - 3000) < 500 || abs(next_WP_loc.alt - home.alt - g.rtl_dist * 10) < 500 ){
+                jump_to_rtl_and_land_without_cmd();
+                auto_state.checked_for_autoland = true;
+                // while landing, don't want to fall through to loiter mode
+                break;
+              }
             }
+            // }else{
+            //   jump_to_landing_sequence();
+            //   auto_state.checked_for_autoland = true;
+            // }
 
             // prevent running the expensive jump_to_landing_sequence
             // on every loop
             // auto_state.checked_for_autoland = true;
         }
-        else if (g.rtl_autoland == 2 &&
-            !auto_state.checked_for_autoland) {
-            // Go directly to the landing sequence
-            // jump_to_landing_sequence();
-            if(allow_rtl_and_land()){
-              jump_to_rtl_and_land_without_cmd();
-              auto_state.checked_for_autoland = true;
-              // while landing, don't want to fall through to loiter mode
-              break;
-            }else{
-              jump_to_landing_sequence();
-              auto_state.checked_for_autoland = true;
-            }
-
-            // prevent running the expensive jump_to_landing_sequence
-            // on every loop
-            // auto_state.checked_for_autoland = true;
-        } else if(allow_rtl_and_land() && auto_state.checked_for_autoland) {
+        // else if (g.rtl_autoland == 2 &&
+        //     !auto_state.checked_for_autoland) {
+        //     // Go directly to the landing sequence
+        //     // jump_to_landing_sequence();
+        //     if(allow_rtl_and_land()){
+        //       jump_to_rtl_and_land_without_cmd();
+        //       auto_state.checked_for_autoland = true;
+        //       // while landing, don't want to fall through to loiter mode
+        //       break;
+        //     }else{
+        //       jump_to_landing_sequence();
+        //       auto_state.checked_for_autoland = true;
+        //     }
+        //
+        //     // prevent running the expensive jump_to_landing_sequence
+        //     // on every loop
+        //     // auto_state.checked_for_autoland = true;
+        // }
+        else if(allow_rtl_and_land() && auto_state.checked_for_autoland) {
             update_rtl_and_land_without_cmd();
             break;
         }
@@ -969,6 +1026,7 @@ void Plane::set_flight_stage(AP_SpdHgtControl::FlightStage fs)
         break;
 
     case AP_SpdHgtControl::FLIGHT_LAND_PREFLARE:
+        gcs_send_text(MAV_SEVERITY_NOTICE, "PREFLARE STAGE");
     case AP_SpdHgtControl::FLIGHT_LAND_FINAL:
         auto_state.land_in_progress = true;
         break;
@@ -1073,7 +1131,7 @@ void Plane::update_flight_stage(void)
             } else {
                 set_flight_stage(AP_SpdHgtControl::FLIGHT_NORMAL);
             }
-        } else if(control_mode==RTL && allow_rtl_and_land()){
+        } else if(control_mode==RTL && auto_state.checked_for_autoland){
           if ((g.land_abort_throttle_enable && channel_throttle->get_control_in() >= 90) ||
                   auto_state.commanded_go_around ||
                   flight_stage == AP_SpdHgtControl::FLIGHT_LAND_ABORT){
@@ -1081,6 +1139,7 @@ void Plane::update_flight_stage(void)
               set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_ABORT);
           } else if (auto_state.land_complete == true) {
               set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_FINAL);
+              gcs_send_text(MAV_SEVERITY_NOTICE, "FINAL LANDING STAGE");
           } else if (auto_state.land_pre_flare == true) {
               set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_PREFLARE);
           } else if (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_APPROACH) {
