@@ -412,7 +412,7 @@ bool AP_GPS_SHOUBEI::_term_complete()
                 case _GPS_SENTENCE_HPR:
                 	//GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING, "GPS Yaw %f", state.gps_heading);
                 	state.gps_heading= ToRad((float)_new_gps_heading/100); //added by LSH     at here gps not good  the gps heading is  useless
-                	if(_new_gps_heading_mode=='N') {
+                    if(_new_gps_heading_mode=='N') {
                 		state.have_gps_heading=true;
                 		//GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING, "have_gps_heading  %d", state.have_gps_heading);
                 	}else{
@@ -514,9 +514,9 @@ bool AP_GPS_SHOUBEI::_term_complete()
 			break;
         case _GPS_SENTENCE_HPR+6:
 			_new_gps_heading_mode=_term[0];		///added by LSH
-			if(state.have_gps_heading && (_new_gps_heading_mode=='G' || _new_gps_heading_mode==0))
+            if(state.have_gps_heading && (_new_gps_heading_mode =='G' ||_new_gps_heading_mode==0))
 				GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"GPS_heading  Lost");
-			else if(!state.have_gps_heading &&_new_gps_heading_mode=='N')
+			else if(!state.have_gps_heading && (_new_gps_heading_mode=='N'))
 				GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"GPS_heading  Got");
 			break;
         case _GPS_SENTENCE_RMC + 2: // validity (RMC)

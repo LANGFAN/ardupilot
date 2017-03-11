@@ -250,6 +250,7 @@ public:
         //
         // 160: Navigation parameters
         //
+		k_param_guided_takeoff_alt,
         k_param_rtl_altitude = 160,
         k_param_crosstrack_gain,	// deprecated - remove with next eeprom number change
         k_param_rtl_loiter_time,
@@ -388,6 +389,7 @@ public:
     AP_Int16        takeoff_trigger_dz;
     AP_Float        pilot_takeoff_alt;
 
+    AP_Int16 		guided_takeoff_alt;
     AP_Int16        rtl_altitude;
     AP_Int16        rtl_speed_cms;
     AP_Float        rtl_cone_slope;

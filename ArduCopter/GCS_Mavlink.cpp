@@ -323,7 +323,7 @@ void NOINLINE Copter::send_location(mavlink_channel_t chan)
         vel.z,                          // Z speed cm/s (+ve up)
         ahrs.yaw_sensor);               // compass heading in 1/100 degree
 }
-
+/*
 void NOINLINE Copter::send_nav_controller_output(mavlink_channel_t chan)
 {
     const Vector3f &targets = attitude_control.get_att_target_euler_cd();
@@ -334,6 +334,26 @@ void NOINLINE Copter::send_nav_controller_output(mavlink_channel_t chan)
         targets.z / 1.0e2f,
         wp_bearing / 1.0e2f,
         wp_distance / 1.0e2f,
+        pos_control.get_alt_error() / 1.0e2f,
+        0,
+        0);
+}
+*/
+void NOINLINE Copter::send_nav_controller_output(mavlink_channel_t chan)
+{
+    const Vector3f &targets = attitude_control.get_att_target_euler_cd();
+
+    Location loc_abc;
+    inertial_nav.get_location(loc_abc);
+
+    mavlink_msg_nav_controller_output_send(
+        chan,
+        targets.x / 1.0e2f,
+        targets.y / 1.0e2f,
+        targets.z / 1.0e2f,
+        wp_bearing / 1.0e2f,
+        //wp_distance / 1.0e2f,
+  	get_distance_cm(ahrs.get_home(), loc_abc),
         pos_control.get_alt_error() / 1.0e2f,
         0,
         0);
@@ -1453,16 +1473,21 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
 
         case MAV_CMD_COMPONENT_ARM_DISARM:
             if (is_equal(packet.param1,1.0f)) {
+            if(copter.home_is_set()){
                 // attempt to arm and return success or failure
                 if (copter.init_arm_motors(true)) {
 
                 	//added by LSH
                 	if(copter.control_mode==GUIDED){
-						float takeoff_alt = copter.g2.wp_navalt_min * 100;      // Convert m to cm
-						copter.do_user_takeoff(takeoff_alt, is_zero((float)0));
+				float takeoff_alt = copter.g.guided_takeoff_alt * 100;      // Convert m to cm
+				copter.do_user_takeoff(takeoff_alt, is_zero((float)0));
                 	}
-                			result = MAV_RESULT_ACCEPTED;
+                	result = MAV_RESULT_ACCEPTED;
                 }
+              }else{
+                  GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING, "home unset");
+              }
+                
             } else if (is_zero(packet.param1) && (copter.ap.land_complete || is_equal(packet.param2,21196.0f)))  {
                 // force disarming by setting param2 = 21196 is deprecated
                 copter.init_disarm_motors();

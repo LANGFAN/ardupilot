@@ -374,6 +374,8 @@ bool NavEKF2_core::readDeltaVelocity(uint8_t ins_index, Vector3f &dVel, float &d
 *             Global Position Measurement               *
 ********************************************************/
 
+uint32_t rtk_rcv_time=0;
+bool rtk_rcv_first_flag=false;
 // check for new valid GPS data and update stored measurement if available
 void NavEKF2_core::readGpsData()
 {
@@ -472,8 +474,13 @@ void NavEKF2_core::readGpsData()
 
             // Set the EKF origin and magnetic field declination if not previously set  and GPS checks have passed
             if (gpsGoodToAlign && !validOrigin) {
-              if(_ahrs->get_gps().status() >= AP_GPS::GPS_OK_FIX_3D_RTK){
-                setOrigin();
+              if(_ahrs->get_gps().status() >= AP_GPS::GPS_OK_FIX_3D_RTK && !rtk_rcv_first_flag){
+                rtk_rcv_time=AP_HAL::millis();
+                rtk_rcv_first_flag=true;
+              }
+              if(AP_HAL::millis()-rtk_rcv_time>5000){
+		 setOrigin();
+              
 
                 // set the NE earth magnetic field states using the published declination
                 // and set the corresponding variances and covariances

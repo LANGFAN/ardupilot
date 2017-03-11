@@ -186,12 +186,14 @@ void Copter::rtl_loiterathome_start()
     rtl_state_complete = false;
     rtl_loiter_start_time = millis();
 
+    set_auto_yaw_mode(AUTO_YAW_RESETTOARMEDYAW);
     // yaw back to initial take-off heading yaw unless pilot has already overridden yaw
-    if(get_default_auto_yaw_mode(true) != AUTO_YAW_HOLD) {
+/*    if(get_default_auto_yaw_mode(true) != AUTO_YAW_HOLD) {
         set_auto_yaw_mode(AUTO_YAW_RESETTOARMEDYAW);
     } else {
         set_auto_yaw_mode(AUTO_YAW_HOLD);
     }
+*/
 }
 
 // rtl_climb_return_descent_run - implements the initial climb, return home and descent portions of RTL which all rely on the wp controller
@@ -243,7 +245,7 @@ void Copter::rtl_loiterathome_run()
     }
 
     // check if we've completed this stage of RTL
-    if ((millis() - rtl_loiter_start_time) >= (uint32_t)g.rtl_loiter_time.get()) {
+/*    if ((millis() - rtl_loiter_start_time) >= (uint32_t)g.rtl_loiter_time.get()) {
         if (auto_yaw_mode == AUTO_YAW_RESETTOARMEDYAW) {
             // check if heading is within 2 degrees of heading when vehicle was armed
             if (labs(wrap_180_cd(ahrs.yaw_sensor-initial_armed_bearing)) <= 200) {
@@ -254,6 +256,8 @@ void Copter::rtl_loiterathome_run()
             rtl_state_complete = true;
         }
     }
+*/
+	rtl_state_complete = true;
 }
 
 // rtl_descent_start - initialise descent to final alt
