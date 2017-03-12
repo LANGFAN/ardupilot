@@ -203,6 +203,7 @@ public:
         k_param_sysid_this_mav,
         k_param_sysid_my_gcs,
 		k_param_sysid_my_rc,   //added by LSH
+		k_param_guided_takeoff_alt,
         k_param_serial1_baud_old, // deprecated
         k_param_telem_delay,
         k_param_gcs2,
@@ -250,7 +251,6 @@ public:
         //
         // 160: Navigation parameters
         //
-		k_param_guided_takeoff_alt,
         k_param_rtl_altitude = 160,
         k_param_crosstrack_gain,	// deprecated - remove with next eeprom number change
         k_param_rtl_loiter_time,

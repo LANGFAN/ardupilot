@@ -278,26 +278,26 @@ void Copter::land_run_horizontal_control()
     int32_t nav_roll  = wp_nav.get_roll();
     int32_t nav_pitch = wp_nav.get_pitch();
 
-    if (g2.wp_navalt_min > 0) {
-        // user has requested an altitude below which navigation
-        // attitude is limited. This is used to prevent commanded roll
-        // over on landing, which particularly affects helicopters if
-        // there is any position estimate drift after touchdown. We
-        // limit attitude to 7 degrees below this limit and linearly
-        // interpolate for 1m above that
-        int alt_above_ground = land_get_alt_above_ground();
-        float attitude_limit_cd = linear_interpolate(700, aparm.angle_max, alt_above_ground,
-                                                     g2.wp_navalt_min*100U, (g2.wp_navalt_min+1)*100U);
-        float total_angle_cd = norm(nav_roll, nav_pitch);
-        if (total_angle_cd > attitude_limit_cd) {
-            float ratio = attitude_limit_cd / total_angle_cd;
-            nav_roll *= ratio;
-            nav_pitch *= ratio;
-
-            // tell position controller we are applying an external limit
-            pos_control.set_limit_accel_xy();
-        }
-    }
+//    if (g2.wp_navalt_min > 0) {
+//        // user has requested an altitude below which navigation
+//        // attitude is limited. This is used to prevent commanded roll
+//        // over on landing, which particularly affects helicopters if
+//        // there is any position estimate drift after touchdown. We
+//        // limit attitude to 7 degrees below this limit and linearly
+//        // interpolate for 1m above that
+//        int alt_above_ground = land_get_alt_above_ground();
+//        float attitude_limit_cd = linear_interpolate(700, aparm.angle_max, alt_above_ground,
+//                                                     g2.wp_navalt_min*100U, (g2.wp_navalt_min+1)*100U);
+//        float total_angle_cd = norm(nav_roll, nav_pitch);
+//        if (total_angle_cd > attitude_limit_cd) {
+//            float ratio = attitude_limit_cd / total_angle_cd;
+//            nav_roll *= ratio;
+//            nav_pitch *= ratio;
+//
+//            // tell position controller we are applying an external limit
+//            pos_control.set_limit_accel_xy();
+//        }
+//    }
 
     
     // call attitude controller

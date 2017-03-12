@@ -129,8 +129,14 @@ const AP_Param::Info Copter::var_info[] = {
     GSCALAR(gcs_pid_mask,           "GCS_PID_MASK",     0),
 
 
-	GSCALAR(guided_takeoff_alt,   "ZIDONG_ALT",     0),
-
+	// @Param: ZIDONG_ALT
+	// @DisplayName: ZIDONG_ALT
+	// @Description:ads
+	// @Units: m
+	// @Range: 0 8000
+	// @Increment: 1
+	// @User: abc
+	GSCALAR(guided_takeoff_alt,"ZIDONG_ALT",     0),
     // @Param: RTL_ALT
     // @DisplayName: RTL Altitude
     // @Description: The minimum relative altitude the model will move to before Returning to Launch.  Set to zero to return at current altitude.

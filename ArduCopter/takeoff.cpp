@@ -162,20 +162,22 @@ void Copter::auto_takeoff_attitude_run(float target_yaw_rate)
 {
     float nav_roll, nav_pitch;
 
-     if (g2.wp_navalt_min > 0 && inertial_nav.get_altitude() < auto_takeoff_no_nav_alt_cm) {
-         // we haven't reached the takeoff navigation altitude yet
-         nav_roll = 0;
-         nav_pitch = 0;
- #if FRAME_CONFIG == HELI_FRAME
-         // prevent hover roll starting till past specified altitude
-         hover_roll_trim_scalar_slew = 0;
- #endif
-         // tell the position controller that we have limited roll/pitch demand to prevent integrator buildup
-         pos_control.set_limit_accel_xy();
-     } else {
-        nav_roll = wp_nav.get_roll();
-        nav_pitch = wp_nav.get_pitch();
-     }
+//     if (g2.wp_navalt_min > 0 && inertial_nav.get_altitude() < auto_takeoff_no_nav_alt_cm) {
+//         // we haven't reached the takeoff navigation altitude yet
+//         nav_roll = 0;
+//         nav_pitch = 0;
+// #if FRAME_CONFIG == HELI_FRAME
+//         // prevent hover roll starting till past specified altitude
+//         hover_roll_trim_scalar_slew = 0;
+// #endif
+//         // tell the position controller that we have limited roll/pitch demand to prevent integrator buildup
+//         pos_control.set_limit_accel_xy();
+//     } else {
+//        nav_roll = wp_nav.get_roll();
+//        nav_pitch = wp_nav.get_pitch();
+//     }
+     nav_roll = wp_nav.get_roll();
+     nav_pitch = wp_nav.get_pitch();
 
     // roll & pitch from waypoint controller, yaw rate from pilot
     attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(nav_roll, nav_pitch, target_yaw_rate, get_smoothing_gain());
