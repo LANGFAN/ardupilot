@@ -913,6 +913,9 @@ private:
     void rtl_descent_run();
     void rtl_land_start();
     void rtl_land_run();
+    void adjust_xy_pos_start();
+    void adjust_xy_pos_run();
+
     void rtl_build_path(bool terrain_following_allowed);
     void rtl_compute_return_target(bool terrain_following_allowed);
     bool sport_init(bool ignore_checks);

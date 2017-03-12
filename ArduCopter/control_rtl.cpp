@@ -51,6 +51,11 @@ void Copter::rtl_run()
                 rtl_descent_start();
             }
             break;
+        case RTL_AdjustXYPos:
+        	if (rtl_path.land || failsafe.radio) {
+				rtl_land_start();
+			}
+        	break;
         case RTL_FinalDescent:
             // do nothing
             break;
@@ -82,6 +87,9 @@ void Copter::rtl_run()
     case RTL_Land:
         rtl_land_run();
         break;
+    case RTL_AdjustXYPos:
+		adjust_xy_pos_run();
+		break;
     }
 }
 
@@ -361,6 +369,62 @@ void Copter::rtl_land_start()
     set_auto_yaw_mode(AUTO_YAW_HOLD);
 }
 
+
+void Copter::adjust_xy_pos_start()
+{
+
+	rtl_state = RTL_AdjustXYPos;
+	rtl_state_complete = false;
+	// initialise waypoint and spline controller
+    wp_nav.wp_and_spline_init();
+
+	Location_Class target_loc ;
+	target_loc.lat=rtl_path.return_target.lat;
+	target_loc.lng=rtl_path.return_target.lng;
+	target_loc.alt=current_loc.alt;
+	wp_nav.set_wp_destination(target_loc);
+}
+void Copter::adjust_xy_pos_run()
+{
+    // if not auto armed or motors not enabled set throttle to zero and exit immediately
+    if (!motors.armed() || !ap.auto_armed || !motors.get_interlock()) {
+#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
+        // call attitude controller
+        attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(0, 0, 0, get_smoothing_gain());
+        attitude_control.set_throttle_out(0,false,g.throttle_filt);
+#else
+        motors.set_desired_spool_state(AP_Motors::DESIRED_SPIN_WHEN_ARMED);
+        // multicopters do not stabilize roll/pitch/yaw when disarmed
+        attitude_control.set_throttle_out_unstabilized(0,true,g.throttle_filt);
+#endif
+        return;
+    }
+
+    // process pilot's yaw input
+    float target_yaw_rate = 0;
+    if (!failsafe.radio) {
+        // get pilot's desired yaw rate
+		set_auto_yaw_mode(AUTO_YAW_HOLD);
+    }
+
+    // set motors to full range
+    motors.set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+
+    // run waypoint controller
+    failsafe_terrain_set_status(wp_nav.update_wpnav());
+
+    // call z-axis position controller (wpnav should have already updated it's alt target)
+    pos_control.update_z_controller();
+
+    // call attitude controller
+	// roll & pitch from waypoint controller, yaw rate from pilot
+	attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(wp_nav.get_roll(), wp_nav.get_pitch(), target_yaw_rate, get_smoothing_gain());
+	if(get_distance_cm(ahrs.get_home(),current_loc)<20)
+	{
+		rtl_state_complete = true;
+	}
+}
+
 // rtl_returnhome_run - return home
 //      called by rtl_run at 100hz or more
 void Copter::rtl_land_run()
@@ -395,6 +459,18 @@ void Copter::rtl_land_run()
     land_run_horizontal_control();
     land_run_vertical_control();
 
+    //set adjust xy position for precise land
+    if(current_loc.alt>150 && current_loc.alt<350){
+    	if(get_distance_cm(ahrs.get_home(),current_loc)>20)
+    	{
+    		adjust_xy_pos_start();
+    	}
+
+    	if(current_loc.alt<20){
+ 	 	 	 //should climb to 150
+    	}
+
+    }
     // check if we've completed this stage of RTL
     rtl_state_complete = ap.land_complete;
 }
