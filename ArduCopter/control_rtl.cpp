@@ -460,10 +460,12 @@ void Copter::rtl_land_run()
     land_run_vertical_control();
 
     //set adjust xy position for precise land
-    if(current_loc.alt>150 && current_loc.alt<350){
-    	if(get_distance_cm(ahrs.get_home(),current_loc)>20)
+    if(current_loc.alt>100 && current_loc.alt<200){
+    	if(get_distance_cm(ahrs.get_home(),current_loc)>30)
     	{
-    		adjust_xy_pos_start();
+//    		adjust_xy_pos_start();
+    		rtl_state = RTL_InitialClimb;
+
     	}
 
     	if(current_loc.alt<20){
