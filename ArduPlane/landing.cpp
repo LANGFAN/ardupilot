@@ -113,7 +113,16 @@ bool Plane::verify_land()
       prevents sudden turns if we overshoot the landing point
      */
     struct Location land_WP_loc = next_WP_loc;
-	int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
+    int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
+    if (g.rtl_dir = 1){
+      if(abs(land_bearing_cd - (36000UL - ekf_origin_heading * 100)) > 300) {
+        land_bearing_cd = 36000UL - ekf_origin_heading * 100;
+      }
+    } else {
+      if(abs(land_bearing_cd - int32_t(ekf_origin_heading * 100)) > 300) {
+        land_bearing_cd = int32_t(ekf_origin_heading * 100);
+      }
+    }
     location_update(land_WP_loc,
                     land_bearing_cd*0.01f,
                     get_distance(prev_WP_loc, current_loc) + 200);
@@ -260,7 +269,8 @@ void Plane::setup_landing_glide_slope(void)
         bool is_first_calc = is_zero(auto_state.land_slope);
         auto_state.land_slope = (sink_height - aim_height) / total_distance;
         if (is_first_calc) {
-            gcs_send_text_fmt(MAV_SEVERITY_INFO, "Landing glide slope %.1f degrees", (double)degrees(atanf(auto_state.land_slope)));
+            gcs_send_text_fmt(MAV_SEVERITY_INFO, "Landing glide slope %.2f", (double)auto_state.land_slope);
+            gcs_send_text_fmt(MAV_SEVERITY_INFO, "Landing distance %.2f m", (double)total_distance);
         }
 
 
@@ -278,10 +288,22 @@ void Plane::setup_landing_glide_slope(void)
 
         // project a point 500 meters past the landing point, passing
         // through the landing point
-        // const float land_projection = 500;
-        const float land_projection = 150;
+        const float land_projection = 500;
+        // const float land_projection = 150;
         int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
 
+        gcs_send_text_fmt(MAV_SEVERITY_WARNING, "land point:%d,%d",
+                          next_WP_loc.lat,next_WP_loc.lng);
+
+        if (g.rtl_dir = 1){
+          if(abs(land_bearing_cd - int32_t(36000UL - ekf_origin_heading * 100)) > 300) {
+            land_bearing_cd = int32_t(36000UL - ekf_origin_heading * 100);
+          }
+        } else {
+          if(abs(land_bearing_cd - int32_t(ekf_origin_heading * 100)) > 300) {
+            land_bearing_cd = int32_t(ekf_origin_heading * 100);
+          }
+        }
         // now calculate our aim point, which is before the landing
         // point and above it
         Location loc = next_WP_loc;
@@ -413,19 +435,18 @@ float Plane::tecs_hgt_afe(void)
 void Plane::jump_to_rtl_and_land_without_cmd(void)
 {
     auto_state.commanded_go_around = false;
+    auto_state.land_complete = false;
 
     Location origin;
 
-    if(1 == g.rtl_dir){
-      origin = ahrs.get_home();
-    } else{
-      ahrs.get_origin(origin);
-    }
+    // if(1 == g.rtl_dir){
+    //   origin = ahrs.get_home();
+    // } else{
+    //   ahrs.get_origin(origin);
+    // }
+    origin = ahrs.get_home();
 
   set_next_WP(origin);
-
-  gcs_send_text_fmt(MAV_SEVERITY_WARNING, "land point=%f,%f,%f",
-                    (double)origin.lat,(double)origin.lng,(double)(origin.alt - home.alt));
 
   // configure abort altitude and pitch
   // if NAV_LAND has an abort altitude then use it, else use last takeoff, else use 50m
@@ -448,7 +469,7 @@ void Plane::jump_to_rtl_and_land_without_cmd(void)
 
 bool Plane::allow_rtl_and_land(void) const
 {
-  return (gps.status() >= AP_GPS::GPS_OK_FIX_3D_RTK && gps.have_gps_heading() && ekf_origin_heading_is_set && flt_origin_heading_is_set && tkoff_distance_get);
+  return (gps.status() >= AP_GPS::GPS_OK_FIX_3D_RTK && gps.have_gps_heading() && ekf_origin_heading_is_set && tkoff_distance_get && (g.rtl_autoland == 1));
 }
 
 void Plane::update_rtl_and_land_without_cmd(void)
@@ -510,7 +531,8 @@ void Plane::update_rtl_and_land_without_cmd(void)
   bool probably_crashed = (g.crash_detection_enable && fabsf(auto_state.sink_rate) < 0.2f && !is_flying());
 
   if ((on_approach_stage && below_flare_alt) ||
-      (on_approach_stage && below_flare_sec && (auto_state.wp_proportion > 0.5)) ||
+      // (on_approach_stage && below_flare_sec && (auto_state.wp_proportion > 0.5)) ||
+      (on_approach_stage && below_flare_sec && (auto_state.wp_proportion > 0.7)) ||
       (!rangefinder_in_range && auto_state.wp_proportion >= 1) ||
       probably_crashed) {
 
@@ -526,6 +548,7 @@ void Plane::update_rtl_and_land_without_cmd(void)
           }
           auto_state.land_complete = true;
           update_flight_stage();
+          gcs_send_text(MAV_SEVERITY_NOTICE, "FINAL LANDING STAGE");
       }
 
 
@@ -555,7 +578,16 @@ void Plane::update_rtl_and_land_without_cmd(void)
 
   // int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
   int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
-
+  if (g.rtl_dir = 1){
+    if(abs(land_bearing_cd - int32_t(36000UL - ekf_origin_heading * 100)) > 300) {
+      land_bearing_cd = int32_t(36000UL - ekf_origin_heading * 100);
+    }
+  } else {
+    if(abs(land_bearing_cd - int32_t(ekf_origin_heading * 100)) > 300) {
+      land_bearing_cd = int32_t(ekf_origin_heading * 100);
+    }
+  }
+  // gcs_send_text_fmt(MAV_SEVERITY_INFO, "land bearing: %d", land_bearing_cd);
   location_update(land_WP_loc,
                   land_bearing_cd*0.01f,
                   get_distance(prev_WP_loc, current_loc) + 200);
@@ -576,24 +608,30 @@ void Plane::update_rtl_and_land_without_cmd(void)
 
 struct Location Plane::calc_rtl_and_land_origin(float rtl_altitude)
 {
+    // struct Location rtl_loc,tkoff_origin;
     struct Location rtl_loc;
-    int32_t rtl_bearing;
+    float rtl_bearing;
+
+    // ahrs.get_origin(tkoff_origin);
 
     // get rtl origin on extension line of EKF_origin and its bearing
-    if(1 == g.rtl_dir){
-      rtl_loc = ahrs.get_home();
-    } else {
-      ahrs.get_origin(rtl_loc);
-    }
+    // if(1 == g.rtl_dir){
+    //   rtl_loc = ahrs.get_home();
+    //   rtl_bearing = get_bearing_cd(rtl_loc,tkoff_origin)*0.01;
+    //   if(fabs(rtl_bearing - ekf_origin_heading)<3.0f){
+    //     rtl_bearing = (rtl_bearing + ekf_origin_heading) / 2;
+    //   } else {
+    //     rtl_bearing = ekf_origin_heading;
+    //   }
+    // } else {
+    //   rtl_loc = tkoff_origin;
+    //   rtl_bearing = ekf_origin_heading;
+    // }
 
+    rtl_bearing = ekf_origin_heading;
 
-    rtl_loc.alt = rtl_altitude; // 10000 cm
-
-    if(fabs((ekf_origin_heading - flt_origin_heading) < 3) ){
-      rtl_bearing = (ekf_origin_heading + flt_origin_heading) / 2.0f;
-    } else {
-      rtl_bearing = ekf_origin_heading;
-    }
+    rtl_loc = ahrs.get_home();
+    rtl_loc.alt = rtl_altitude; // ALT_HOLD_RTL
 
     // location_update(rtl_loc, 180+rtl_bearing, rtl_loc.alt / 10);   // extension line default value: 5000cm / 10 = 500m long extension
     location_update(rtl_loc, rtl_bearing, g.rtl_dir * g.rtl_dist);   // extension line default value: 300m long extension, inverse tkoff bearing

@@ -43,9 +43,18 @@ void Plane::adjust_altitude_target()
         if(allow_rtl_and_land()){
           Location rtl_loc = next_WP_loc;
           rtl_loc.alt = g.rtl_dist * 10;  // unit: cm
-          if(rtl_loc.alt < 3000){
-            rtl_loc.alt = 3000;
+          if(rtl_loc.alt < 4000){
+            rtl_loc.alt = 4000;
           }
+
+          // prevent desending sharp
+          float height = 0;
+          ahrs.get_relative_position_D(height);
+          height = fabs(height * 100);
+          if((height - rtl_loc.alt) > 200){
+            rtl_loc.alt = height - 200;
+          }
+
           rtl_loc.flags.relative_alt = true;
           set_target_altitude_location(rtl_loc);
         } else{

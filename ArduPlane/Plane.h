@@ -823,8 +823,8 @@ private:
     bool ekf_origin_heading_is_set = false;
 
     // FLIGHT ORIGIN HEADING
-    float flt_origin_heading;
-    bool flt_origin_heading_is_set = false;
+    // float flt_origin_heading;
+    // bool flt_origin_heading_is_set = false;
 
     // TAKE OFF DISTANCE and FLAG
     uint32_t flt_origin_time_ms = 0;
