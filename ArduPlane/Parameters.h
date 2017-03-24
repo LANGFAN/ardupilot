@@ -55,6 +55,7 @@ public:
         // rtl direction
         k_param_rtl_dir,
         k_param_rtl_dist,
+        k_param_runway_bearing,
         // Misc
         //
         k_param_auto_trim      = 10,
@@ -358,6 +359,7 @@ public:
 
     AP_Int8 rtl_dir;
     AP_Int16 rtl_dist;
+    AP_Float runway_bearing;
     // Telemetry control
     //
     AP_Int16 sysid_this_mav;

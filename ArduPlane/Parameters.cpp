@@ -62,6 +62,13 @@ const AP_Param::Info Plane::var_info[] = {
     // @User: Standard
     GSCALAR(rtl_dist,            "RTL_DISTANCE",    100),
 
+    // @Param: RUNWAY_BEARING
+    // @DisplayName: RUNWAY BEARING
+    // @Description: given runway bearing for auto landing; if less than 0, imply not using this param
+    // @Values: 0~360.0 deg
+    // @User: Standard
+    GSCALAR(runway_bearing,            "RUNWAY_BEARING",    270.0),
+
     // @Group: SERIAL
     // @Path: ../libraries/AP_SerialManager/AP_SerialManager.cpp
     GOBJECT(serial_manager, "SERIAL",   AP_SerialManager),

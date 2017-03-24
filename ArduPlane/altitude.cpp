@@ -47,12 +47,12 @@ void Plane::adjust_altitude_target()
             rtl_loc.alt = 4000;
           }
 
-          // prevent desending sharp
+          // prevent desending sharply
           float height = 0;
           ahrs.get_relative_position_D(height);
-          height = fabs(height * 100);
-          if((height - rtl_loc.alt) > 200){
-            rtl_loc.alt = height - 200;
+          height = abs(height * 100);
+          if((height - rtl_loc.alt) > 50){
+            rtl_loc.alt = height - 50;
           }
 
           rtl_loc.flags.relative_alt = true;

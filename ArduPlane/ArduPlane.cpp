@@ -618,7 +618,12 @@ void Plane::update_GPS_10Hz(void)
 void Plane::get_vehicle_heading(float &heading, bool &heading_is_set) {
   if(!heading_is_set){
     if(gps.have_gps_heading() && (gps.status() >= AP_GPS::GPS_OK_FIX_3D_RTK)){
-      heading = ToDeg(gps.gps_heading());
+      if(g.runway_bearing < 0){
+        heading = ToDeg(gps.gps_heading());
+      }else{
+        heading = g.runway_bearing;
+      }
+
       heading_is_set = true;
       gcs_send_text_fmt(MAV_SEVERITY_WARNING, "origin bearing:%2f",
                        (double)heading);
@@ -921,7 +926,7 @@ void Plane::update_navigation()
               ahrs.get_relative_position_D(height);
               height = fabs(height);
 
-              if(abs(height - 40.0) < 2.0 || abs(height - g.rtl_dist * 0.1) < 2.0){
+              if(abs(height - 40.0) < 1.0 || abs(height - g.rtl_dist * 0.1) < 1.0){
                 jump_to_rtl_and_land_without_cmd();
                 auto_state.checked_for_autoland = true;
                 // while landing, don't want to fall through to loiter mode
