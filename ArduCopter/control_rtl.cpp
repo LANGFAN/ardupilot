@@ -374,15 +374,21 @@ void Copter::adjust_xy_pos_start()
 {
 
 	rtl_state = RTL_AdjustXYPos;
-	rtl_state_complete = false;
-	// initialise waypoint and spline controller
-    wp_nav.wp_and_spline_init();
+		rtl_state_complete = false;
+		// initialise waypoint and spline controller
+	    wp_nav.wp_and_spline_init();
 
-	Location_Class target_loc ;
-	target_loc.lat=rtl_path.return_target.lat;
-	target_loc.lng=rtl_path.return_target.lng;
-	target_loc.alt=current_loc.alt;
-	wp_nav.set_wp_destination(target_loc);
+		Vector3f loiter_pos;
+		Location_Class target_loc ;
+		target_loc.lat=ahrs.get_home().lat;
+		target_loc.lng=ahrs.get_home().lng;
+		target_loc.alt=current_loc.alt;
+		loiter_pos.x=0;
+		loiter_pos.y=0;
+		loiter_pos.z=current_loc.alt;
+		//wp_nav.wp_and_spline_init();
+		wp_nav.init_loiter_target(loiter_pos,false);
+		//wp_nav.set_wp_destination(target_loc);
 }
 void Copter::adjust_xy_pos_run()
 {
@@ -410,6 +416,7 @@ void Copter::adjust_xy_pos_run()
     // set motors to full range
     motors.set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
 
+    wp_nav.update_loiter(ekfGndSpdLimit, ekfNavVelGainScaler);
     // run waypoint controller
     failsafe_terrain_set_status(wp_nav.update_wpnav());
 
@@ -463,8 +470,8 @@ void Copter::rtl_land_run()
     if(current_loc.alt>100 && current_loc.alt<200){
     	if(get_distance_cm(ahrs.get_home(),current_loc)>30)
     	{
-//    		adjust_xy_pos_start();
-    		rtl_state = RTL_InitialClimb;
+    		adjust_xy_pos_start();
+//    		rtl_state = RTL_InitialClimb;
 
     	}
 
