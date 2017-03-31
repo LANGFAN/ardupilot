@@ -53,8 +53,8 @@ void Copter::rtl_run()
             break;
         case RTL_AdjustXYPos:
         	if (rtl_path.land || failsafe.radio) {
-				rtl_land_start();
-			}
+        		adjust_xy_pos_start();
+		}
         	break;
         case RTL_FinalDescent:
             // do nothing
@@ -252,8 +252,9 @@ void Copter::rtl_loiterathome_run()
         attitude_control.input_euler_angle_roll_pitch_yaw(wp_nav.get_roll(), wp_nav.get_pitch(), get_auto_heading(),true, get_smoothing_gain());
     }
 
+    /*
     // check if we've completed this stage of RTL
-/*    if ((millis() - rtl_loiter_start_time) >= (uint32_t)g.rtl_loiter_time.get()) {
+    if ((millis() - rtl_loiter_start_time) >= (uint32_t)g.rtl_loiter_time.get()) {
         if (auto_yaw_mode == AUTO_YAW_RESETTOARMEDYAW) {
             // check if heading is within 2 degrees of heading when vehicle was armed
             if (labs(wrap_180_cd(ahrs.yaw_sensor-initial_armed_bearing)) <= 200) {
@@ -264,8 +265,8 @@ void Copter::rtl_loiterathome_run()
             rtl_state_complete = true;
         }
     }
-*/
-	rtl_state_complete = true;
+    */
+    rtl_state_complete = true;
 }
 
 // rtl_descent_start - initialise descent to final alt
@@ -279,6 +280,7 @@ void Copter::rtl_descent_start()
 
     // initialise altitude target to stopping point
     pos_control.set_target_to_stopping_point_z();
+//	GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"\r\ndescent");
 
     // initialise yaw
     set_auto_yaw_mode(AUTO_YAW_HOLD);
@@ -348,6 +350,18 @@ void Copter::rtl_descent_run()
 
     // check if we've reached within 20cm of final altitude
     rtl_state_complete = fabsf(rtl_path.descent_target.alt - current_loc.alt) < 20.0f;
+   //set adjust xy position for precise land
+    if(current_loc.alt>150 && current_loc.alt<250){
+    	if(get_distance_cm(ahrs.get_home(),current_loc)>=30)
+    	{
+    		adjust_xy_pos_start();
+    	}
+	
+    	if(current_loc.alt<20){
+ 	 	 	 //should climb to 150
+    	}
+
+    }
 }
 
 // rtl_loiterathome_start - initialise controllers to loiter over home
@@ -365,6 +379,7 @@ void Copter::rtl_land_start()
         pos_control.set_desired_velocity_z(inertial_nav.get_velocity_z());
     }
 
+    //GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"\r\nland");
     // initialise yaw
     set_auto_yaw_mode(AUTO_YAW_HOLD);
 }
@@ -372,64 +387,15 @@ void Copter::rtl_land_start()
 
 void Copter::adjust_xy_pos_start()
 {
+	rtl_state = RTL_InitialClimb;
+	rtl_state_complete = false;
 
-	rtl_state = RTL_AdjustXYPos;
-		rtl_state_complete = false;
-		// initialise waypoint and spline controller
-	    wp_nav.wp_and_spline_init();
-
-		Vector3f loiter_pos;
-		Location_Class target_loc ;
-		target_loc.lat=ahrs.get_home().lat;
-		target_loc.lng=ahrs.get_home().lng;
-		target_loc.alt=current_loc.alt;
-		loiter_pos.x=0;
-		loiter_pos.y=0;
-		loiter_pos.z=current_loc.alt;
-		//wp_nav.wp_and_spline_init();
-		wp_nav.init_loiter_target(loiter_pos,false);
-		//wp_nav.set_wp_destination(target_loc);
+	rtl_build_path(true);
 }
+
 void Copter::adjust_xy_pos_run()
 {
-    // if not auto armed or motors not enabled set throttle to zero and exit immediately
-    if (!motors.armed() || !ap.auto_armed || !motors.get_interlock()) {
-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
-        // call attitude controller
-        attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(0, 0, 0, get_smoothing_gain());
-        attitude_control.set_throttle_out(0,false,g.throttle_filt);
-#else
-        motors.set_desired_spool_state(AP_Motors::DESIRED_SPIN_WHEN_ARMED);
-        // multicopters do not stabilize roll/pitch/yaw when disarmed
-        attitude_control.set_throttle_out_unstabilized(0,true,g.throttle_filt);
-#endif
-        return;
-    }
 
-    // process pilot's yaw input
-    float target_yaw_rate = 0;
-    if (!failsafe.radio) {
-        // get pilot's desired yaw rate
-		set_auto_yaw_mode(AUTO_YAW_HOLD);
-    }
-
-    // set motors to full range
-    motors.set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
-
-    wp_nav.update_loiter(ekfGndSpdLimit, ekfNavVelGainScaler);
-    // run waypoint controller
-    failsafe_terrain_set_status(wp_nav.update_wpnav());
-
-    // call z-axis position controller (wpnav should have already updated it's alt target)
-    pos_control.update_z_controller();
-
-    // call attitude controller
-	// roll & pitch from waypoint controller, yaw rate from pilot
-	attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(wp_nav.get_roll(), wp_nav.get_pitch(), target_yaw_rate, get_smoothing_gain());
-	if(get_distance_cm(ahrs.get_home(),current_loc)<20)
-	{
-		rtl_state_complete = true;
-	}
 }
 
 // rtl_returnhome_run - return home
@@ -460,23 +426,23 @@ void Copter::rtl_land_run()
         return;
     }
 
+	
     // set motors to full range
     motors.set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
 
     land_run_horizontal_control();
     land_run_vertical_control();
 
-    //set adjust xy position for precise land
-    if(current_loc.alt>100 && current_loc.alt<200){
-    	if(get_distance_cm(ahrs.get_home(),current_loc)>30)
-    	{
-    		adjust_xy_pos_start();
-//    		rtl_state = RTL_InitialClimb;
+	//GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"\r\ns %d",get_distance_cm(ahrs.get_home(),current_loc));
 
+    //set adjust xy position for precise land
+    if(current_loc.alt>150 && current_loc.alt<250){
+    	if(get_distance_cm(ahrs.get_home(),current_loc)>=30){
+    		adjust_xy_pos_start();
     	}
 
     	if(current_loc.alt<20){
- 	 	 	 //should climb to 150
+ 	 //should climb to 150
     	}
 
     }
