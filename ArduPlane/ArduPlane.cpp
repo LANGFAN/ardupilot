@@ -581,7 +581,7 @@ void Plane::update_GPS_10Hz(void)
 
            if (battery.healthy()){
             //  GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_WARNING,"tkoff Vol-Amp:%dV-%dA",);
-             gcs_send_text_fmt(MAV_SEVERITY_WARNING, "tkoff vol=%.2fm amp=%.2fs cap_pct=%d",
+             gcs_send_text_fmt(MAV_SEVERITY_WARNING, "tkoff vol=%.2fV amp=%.2fA cap_pct=%d%",
                               (double)tkoff_voltage,
                               (double)tkoff_current_amps,
                               battery.capacity_remaining_pct());
@@ -1089,13 +1089,16 @@ void Plane::update_alt()
 
     update_flight_stage();
 
+    // if ((auto_throttle_mode && !throttle_suppressed)||(control_mode==RTL && auto_state.checked_for_autoland && auto_state.land_in_progress)) {
     if (auto_throttle_mode && !throttle_suppressed) {
 
         float distance_beyond_land_wp = 0;
         if (auto_state.land_in_progress && location_passed_point(current_loc, prev_WP_loc, next_WP_loc)) {
             distance_beyond_land_wp = get_distance(current_loc, next_WP_loc);
         }
-
+        // if(control_mode==RTL && auto_state.checked_for_autoland && auto_state.land_in_progress){
+        //   gcs_send_text_fmt(MAV_SEVERITY_WARNING, "hgt_afe=%.2fcm",(double)tecs_hgt_afe());
+        // }
         SpdHgt_Controller->update_pitch_throttle(relative_target_altitude_cm(),
                                                  target_airspeed_cm,
                                                  flight_stage,

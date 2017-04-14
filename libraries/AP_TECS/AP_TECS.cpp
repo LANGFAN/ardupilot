@@ -238,7 +238,7 @@ const AP_Param::GroupInfo AP_TECS::var_info[] = {
     // @Values: 0:Disable,1:Enable
     // @User: Advanced
     AP_GROUPINFO("SYNAIRSPEED", 27, AP_TECS, _use_synthetic_airspeed, 0),
-    
+
     AP_GROUPEND
 };
 
@@ -675,6 +675,11 @@ void AP_TECS::_update_throttle_with_airspeed(void)
         _throttle_dem = _throttle_dem + _integTHR_state;
     }
 
+    if(_flight_stage == AP_TECS::FLIGHT_LAND_FINAL && _hgt_dem <= 0.05){
+      
+      _throttle_dem = 0.0;
+    }
+
     // Constrain throttle demand
     _throttle_dem = constrain_float(_throttle_dem, _THRminf, _THRmaxf);
 }
@@ -781,7 +786,7 @@ void AP_TECS::_update_pitch(void)
     }
 
     logging.SKE_weighting = SKE_weighting;
-    
+
     float SPE_weighting = 2.0f - SKE_weighting;
 
     // Calculate Specific Energy Balance demand, and error
@@ -792,7 +797,7 @@ void AP_TECS::_update_pitch(void)
 
     logging.SKE_error = _SKE_dem - _SKE_est;
     logging.SPE_error = _SPE_dem - _SPE_est;
-    
+
     // Calculate integrator state, constraining input if pitch limits are exceeded
     float integSEB_input = SEB_error * _get_i_gain();
     if (_pitch_dem > _PITCHmaxf)
@@ -840,7 +845,7 @@ void AP_TECS::_update_pitch(void)
     float integSEB_range = integSEB_max - integSEB_min;
 
     logging.SEB_delta = integSEB_delta;
-    
+
     // don't allow the integrator to rise by more than 20% of its full
     // range in one step. This prevents single value glitches from
     // causing massive integrator changes. See Issue#4066
@@ -906,10 +911,10 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _flags.underspeed        = false;
         _flags.badDescent  = false;
     }
-    
+
     if (_flight_stage != AP_TECS::FLIGHT_TAKEOFF && _flight_stage != AP_TECS::FLIGHT_LAND_ABORT) {
         // reset takeoff speed flag when not in takeoff
-        _flags.reached_speed_takeoff = false;        
+        _flags.reached_speed_takeoff = false;
     }
 }
 
@@ -978,7 +983,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
         _PITCHminf = constrain_float(_PITCHminf, -_pitch_max_limit, _PITCHmaxf);
         _pitch_max_limit = 90;
     }
-        
+
     if (flight_stage == FLIGHT_LAND_FINAL) {
         // in flare use min pitch from LAND_PITCH_CD
         _PITCHminf = MAX(_PITCHminf, aparm.land_pitch_cd * 0.01f);
@@ -1018,7 +1023,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
             _flags.reached_speed_takeoff = true;
         }
     }
-    
+
     // convert to radians
     _PITCHmaxf = radians(_PITCHmaxf);
     _PITCHminf = radians(_PITCHminf);

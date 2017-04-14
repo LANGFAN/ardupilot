@@ -41,22 +41,27 @@ void Plane::adjust_altitude_target()
         // once we reach a loiter target then lock to the final
         // altitude target
         if(allow_rtl_and_land()){
-          Location rtl_loc = next_WP_loc;
-          rtl_loc.alt = g.rtl_dist * 10;  // unit: cm
-          if(rtl_loc.alt < 4000){
-            rtl_loc.alt = 4000;
+          if(!auto_state.checked_for_autoland){
+            Location rtl_loc = next_WP_loc;
+            rtl_loc.alt = g.rtl_dist * 10;  // unit: cm
+            if(rtl_loc.alt < 4000){
+              rtl_loc.alt = 4000;
+            }
+
+            // prevent desending sharply
+            float height = 0;
+            ahrs.get_relative_position_D(height);
+            height = abs(height * 100);
+            if((height - rtl_loc.alt) > 50){
+              rtl_loc.alt = height - 100;
+            }else{
+              rtl_loc.alt -= 100;
+            }
+
+            rtl_loc.flags.relative_alt = true;
+            set_target_altitude_location(rtl_loc);
           }
 
-          // prevent desending sharply
-          float height = 0;
-          ahrs.get_relative_position_D(height);
-          height = abs(height * 100);
-          if((height - rtl_loc.alt) > 50){
-            rtl_loc.alt = height - 50;
-          }
-
-          rtl_loc.flags.relative_alt = true;
-          set_target_altitude_location(rtl_loc);
         } else{
           set_target_altitude_location(next_WP_loc);
         }

@@ -979,6 +979,7 @@ private:
     void update_rtl_and_land_without_cmd(void);  // refer to verify_land()
     bool allow_rtl_and_land(void) const;        // check if everything is OK for auto landing
     struct Location calc_rtl_and_land_origin(float rtl_altigude);  // calc landing origin
+    void check_and_trim_bearing(float origin_bearing,int32_t& bearing_cal);
 
     float tecs_hgt_afe(void);
     void set_nav_controller(void);

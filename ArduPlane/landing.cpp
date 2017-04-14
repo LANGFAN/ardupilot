@@ -271,6 +271,10 @@ void Plane::setup_landing_glide_slope(void)
         if (is_first_calc) {
             gcs_send_text_fmt(MAV_SEVERITY_INFO, "Landing glide slope %.2f", (double)auto_state.land_slope);
             gcs_send_text_fmt(MAV_SEVERITY_INFO, "Landing distance %.2f m", (double)total_distance);
+            gcs_send_text_fmt(MAV_SEVERITY_WARNING, "land point:%d,%d",
+                              next_WP_loc.lat,next_WP_loc.lng);
+            gcs_send_text_fmt(MAV_SEVERITY_WARNING, "previous point:%d,%d",
+                                                prev_WP_loc.lat,prev_WP_loc.lng);
         }
 
 
@@ -292,18 +296,8 @@ void Plane::setup_landing_glide_slope(void)
         // const float land_projection = 150;
         int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
 
-        gcs_send_text_fmt(MAV_SEVERITY_WARNING, "land point:%d,%d",
-                          next_WP_loc.lat,next_WP_loc.lng);
+        check_and_trim_bearing(ekf_origin_heading,land_bearing_cd);
 
-        if (g.rtl_dir = 1){
-          if(abs(land_bearing_cd - int32_t(36000UL - ekf_origin_heading * 100)) > 300) {
-            land_bearing_cd = int32_t(36000UL - ekf_origin_heading * 100);
-          }
-        } else {
-          if(abs(land_bearing_cd - int32_t(ekf_origin_heading * 100)) > 300) {
-            land_bearing_cd = int32_t(ekf_origin_heading * 100);
-          }
-        }
         // now calculate our aim point, which is before the landing
         // point and above it
         Location loc = next_WP_loc;
@@ -437,16 +431,17 @@ void Plane::jump_to_rtl_and_land_without_cmd(void)
     auto_state.commanded_go_around = false;
     auto_state.land_complete = false;
 
-    Location origin;
+    auto_state.next_wp_no_crosstrack = false;
+    // Location origin;
 
     // if(1 == g.rtl_dir){
     //   origin = ahrs.get_home();
     // } else{
     //   ahrs.get_origin(origin);
     // }
-    origin = ahrs.get_home();
+    // origin = ahrs.get_home();
 
-  set_next_WP(origin);
+  set_next_WP(ahrs.get_home());
 
   // configure abort altitude and pitch
   // if NAV_LAND has an abort altitude then use it, else use last takeoff, else use 50m
@@ -578,15 +573,9 @@ void Plane::update_rtl_and_land_without_cmd(void)
 
   // int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
   int32_t land_bearing_cd = get_bearing_cd(prev_WP_loc, next_WP_loc);
-  if (g.rtl_dir = 1){
-    if(abs(land_bearing_cd - int32_t(36000UL - ekf_origin_heading * 100)) > 300) {
-      land_bearing_cd = int32_t(36000UL - ekf_origin_heading * 100);
-    }
-  } else {
-    if(abs(land_bearing_cd - int32_t(ekf_origin_heading * 100)) > 300) {
-      land_bearing_cd = int32_t(ekf_origin_heading * 100);
-    }
-  }
+
+  check_and_trim_bearing(ekf_origin_heading,land_bearing_cd);
+
   // gcs_send_text_fmt(MAV_SEVERITY_INFO, "land bearing: %d", land_bearing_cd);
   location_update(land_WP_loc,
                   land_bearing_cd*0.01f,
@@ -610,7 +599,7 @@ struct Location Plane::calc_rtl_and_land_origin(float rtl_altitude)
 {
     // struct Location rtl_loc,tkoff_origin;
     struct Location rtl_loc;
-    float rtl_bearing;
+    // float rtl_bearing;
 
     // ahrs.get_origin(tkoff_origin);
 
@@ -628,15 +617,36 @@ struct Location Plane::calc_rtl_and_land_origin(float rtl_altitude)
     //   rtl_bearing = ekf_origin_heading;
     // }
 
-    rtl_bearing = ekf_origin_heading;
+    // rtl_bearing = ekf_origin_heading;
 
     rtl_loc = ahrs.get_home();
     rtl_loc.alt = rtl_altitude; // ALT_HOLD_RTL
 
     // location_update(rtl_loc, 180+rtl_bearing, rtl_loc.alt / 10);   // extension line default value: 5000cm / 10 = 500m long extension
-    location_update(rtl_loc, rtl_bearing, g.rtl_dir * g.rtl_dist);   // extension line default value: 300m long extension, inverse tkoff bearing
+    location_update(rtl_loc, ekf_origin_heading, g.rtl_dir * g.rtl_dist);   // extension line default value: 300m long extension, inverse tkoff bearing
 
     rtl_loc.flags.relative_alt = false;
 
     return rtl_loc;
+}
+
+void Plane::check_and_trim_bearing(float origin_bearing,int32_t& bearing_cal)
+{
+  int32_t bearing_inv_cd = int32_t(origin_bearing * 100);
+  if (g.rtl_dir == 1){
+
+    if(origin_bearing >= 180){
+      bearing_inv_cd = int32_t((origin_bearing - 180.0)*100);
+    }else{
+      bearing_inv_cd = int32_t((origin_bearing + 180.0)*100);
+    }
+  }
+  // else if(g.rtl_dir == -1){
+  //   bearing_inv_cd = int32_t(origin_bearing * 100);
+  // }
+
+  if(abs(bearing_cal - bearing_inv_cd) > 300) {
+      bearing_cal = bearing_inv_cd;
+  }
+
 }
