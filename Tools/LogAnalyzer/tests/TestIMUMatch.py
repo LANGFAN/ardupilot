@@ -35,9 +35,17 @@ class TestIMUMatch(Test):
 
         timeLabel = None
         for i in 'TimeMS','TimeUS','Time':
-            if i in logdata.channels["GPS"]:
-                timeLabel = i
-                break
+            # if no "GPS" data, exception occurs
+            if 'GPS' in logdata.channels:
+                if i in logdata.channels["GPS"]:
+                    timeLabel = i
+                    break
+            else:
+                if i in imu1 or i in imu2:
+                    timeLabel = i
+                    break
+
+
         imu1_timems = imu1[timeLabel].listData
         imu1_accx = imu1["AccX"].listData
         imu1_accy = imu1["AccY"].listData
@@ -109,5 +117,3 @@ class TestIMUMatch(Test):
             self.result.status = TestResult.StatusType.WARN
         else:
             self.result.statusMessage = "(Mismatch: %.2f, WARN: %.2f, FAIL: %.2f)" % (max_diff_filtered,warn_threshold, fail_threshold)
-
-

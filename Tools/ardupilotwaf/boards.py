@@ -286,13 +286,28 @@ class navio2(linux):
         )
 
 class zynq(linux):
-    toolchain = 'arm-xilinx-linux-gnueabi'
+    # toolchain = 'arm-xilinx-linux-gnueabi'
+
+    # download arm-xilinx-linux-gnueabi from web is version 4.6.1
+    # not suitable for APM gnu++11 features
+    # arm-linux-gnueabihf is extracted from PetaLinux, version 5.2.1
+    toolchain = 'arm-linux-gnueabihf'
 
     def configure_env(self, cfg, env):
         super(zynq, self).configure_env(cfg, env)
 
         env.DEFINES.update(
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_ZYNQ',
+        )
+
+class zynq_7000(linux):
+    toolchain = 'arm-linux-gnueabihf'
+
+    def configure_env(self, cfg, env):
+        super(zynq, self).configure_env(cfg, env)
+
+        env.DEFINES.update(
+            CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_ZYNQ_7000',
         )
 
 class bbbmini(linux):
