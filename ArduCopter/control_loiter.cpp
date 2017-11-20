@@ -1,5 +1,5 @@
 #include "Copter.h"
-
+#include <GCS_MAVLink/GCS.h>
 /*
  * Init and run calls for loiter flight mode
  */
@@ -129,6 +129,7 @@ void Copter::loiter_run()
         // run loiter controller
         wp_nav.update_loiter(ekfGndSpdLimit, ekfNavVelGainScaler);
 
+        GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "tkoff yaw rate: %f", target_yaw_rate);
         // call attitude controller
         attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(wp_nav.get_roll(), wp_nav.get_pitch(), target_yaw_rate, get_smoothing_gain());
 

@@ -474,13 +474,13 @@ void NavEKF2_core::readGpsData()
 
             // Set the EKF origin and magnetic field declination if not previously set  and GPS checks have passed
             if (gpsGoodToAlign && !validOrigin) {
-              if(_ahrs->get_gps().status() >= AP_GPS::GPS_OK_FIX_3D_RTK && !rtk_rcv_first_flag){
+              if(_ahrs->get_gps().status() >= AP_GPS::GPS_OK_FIX_3D && !rtk_rcv_first_flag){
                 rtk_rcv_time=AP_HAL::millis();
                 rtk_rcv_first_flag=true;
               }
               if(AP_HAL::millis()-rtk_rcv_time>5000){
 		 setOrigin();
-              
+
 
                 // set the NE earth magnetic field states using the published declination
                 // and set the corresponding variances and covariances

@@ -172,11 +172,11 @@ void Copter::auto_takeoff_run()
 
     #if FRAME_CONFIG == HELI_FRAME
         // helicopters stay in landed state until rotor speed runup has finished
-        if (motors->rotor_runup_complete()) {
+        if (motors.rotor_runup_complete()) {
             set_land_complete(false);
         } else {
             // initialise wpnav targets
-            wp_nav->shift_wp_origin_to_current_pos();
+            wp_nav.shift_wp_origin_to_current_pos();
         }
     #else
         set_land_complete(false);
